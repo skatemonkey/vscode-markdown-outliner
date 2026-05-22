@@ -375,6 +375,8 @@
       const firstElement = listItem.firstElementChild;
       if (firstElement && firstElement.tagName.match(/^H[1-6]$/)) {
         firstElement.insertBefore(toggle, firstElement.firstChild);
+      } else if (firstElement && firstElement.tagName === 'P') {
+        firstElement.insertBefore(toggle, firstElement.firstChild);
       } else {
         listItem.insertBefore(toggle, listItem.firstChild);
       }
