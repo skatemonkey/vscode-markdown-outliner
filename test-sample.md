@@ -113,6 +113,14 @@ Five levels mixing numbers and bullets: hover and fold each parent independently
    - Review the final changes
    - Try the extension in VS Code
 
+### List item with a paragraph and nested bullet
+
+- test bullet point
+
+  Test inside
+
+  - Test with inner bullet point
+
 ## Logseq style bullets
 
 - ## Bullet with heading
