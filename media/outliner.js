@@ -70,12 +70,23 @@
   }
 
   // Create collapse/expand toggle button
-  function createToggleButton(isCollapsed) {
+  function createToggleButton(isCollapsed, onToggle) {
     const button = document.createElement('span');
     button.className = 'outliner-toggle';
+    button.tabIndex = 0;
     button.setAttribute('aria-label', isCollapsed ? 'Expand' : 'Collapse');
     button.setAttribute('role', 'button');
     button.textContent = isCollapsed ? '▶' : '▼';
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onToggle();
+    });
+    button.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle();
+    });
     return button;
   }
 
@@ -326,10 +337,12 @@
 
       const key = getElementKey(heading);
       const isCollapsed = collapsedState[key] || false;
-      const toggle = createToggleButton(isCollapsed);
+      const toggle = createToggleButton(isCollapsed, () => toggleHeading(heading));
 
-      // Insert toggle at the beginning of the heading
-      heading.insertBefore(toggle, heading.firstChild);
+      const gutter = document.createElement('span');
+      gutter.className = 'outliner-heading-gutter';
+      gutter.appendChild(toggle);
+      heading.insertBefore(gutter, heading.firstChild);
       heading.classList.add('outliner-heading');
 
       // Apply saved state
@@ -337,12 +350,6 @@
         heading.classList.add('collapsed');
         content.forEach(el => el.classList.add('outliner-hidden'));
       }
-
-      // Add click handler
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleHeading(heading);
-      });
 
       // Add context menu handler
       toggle.addEventListener('contextmenu', (e) => {
@@ -410,10 +417,9 @@
 
       const key = getElementKey(listItem);
       const isCollapsed = collapsedState[key] || false;
-      const toggle = createToggleButton(isCollapsed);
+      const toggle = createToggleButton(isCollapsed, () => toggleListItem(listItem));
 
       toggle.classList.add('outliner-list-toggle');
-      toggle.tabIndex = 0;
 
       listItem.classList.add('outliner-list-item');
       const label = getListLabel(listItem);
@@ -444,18 +450,6 @@
         listItem.classList.add('collapsed');
         nested.forEach(el => el.classList.add('outliner-hidden'));
       }
-
-      // Add click handler
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleListItem(listItem);
-      });
-      toggle.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        e.stopPropagation();
-        toggleListItem(listItem);
-      });
 
       // Add context menu handler
       toggle.addEventListener('contextmenu', (e) => {

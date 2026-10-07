@@ -250,6 +250,42 @@ describe('Markdown Outliner - Core User Behaviors', () => {
 });
 
 describe('Markdown Outliner - Regression Protection', () => {
+  test.each([1, 2, 3, 4, 5, 6])('H%s controls fold only their section and stay visible while collapsed', (level) => {
+    const html = `
+      <h${level} id="heading">Heading <em id="label">label</em></h${level}>
+      <p id="content">Section content</p>
+      <h${level} id="next">Next section</h${level}>
+      <p id="following">Following content</p>
+    `;
+    setupTestDocument(html);
+    const heading = document.getElementById('heading');
+    const toggle = getHeadingToggle(heading);
+    expect(toggle.tabIndex).toBe(0);
+    expect(getComputedStyle(toggle).opacity).toBe('0');
+
+    click(heading);
+    click(document.getElementById('label'));
+    expect(isHidden(document.getElementById('content'))).toBe(false);
+
+    toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    expect(isHidden(document.getElementById('content'))).toBe(true);
+    expect(isHidden(document.getElementById('next'))).toBe(false);
+    expect(isHidden(document.getElementById('following'))).toBe(false);
+    expect(getComputedStyle(toggle).opacity).toBe('1');
+
+    setupTestDocument(html, false);
+    const restored = document.getElementById('heading');
+    const restoredToggle = getHeadingToggle(restored);
+    expect(isCollapsed(restored)).toBe(true);
+    expect(getComputedStyle(restoredToggle).opacity).toBe('1');
+    restoredToggle.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    expect(isHidden(document.getElementById('content'))).toBe(false);
+    expect(getComputedStyle(restoredToggle).opacity).toBe('0');
+
+    window.markdownOutliner.refresh();
+    expect(restored.querySelectorAll('.outliner-toggle')).toHaveLength(1);
+  });
+
   test.each([
     ['paragraph', '<p id="label">Parent item</p>'],
     ['heading', '<h2 id="label">Parent item</h2>'],

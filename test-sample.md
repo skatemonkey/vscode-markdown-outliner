@@ -1,6 +1,6 @@
 # Markdown Outliner Test Document
 
-This is a test document to demonstrate the collapsible sections feature.
+This is a test document to demonstrate the collapsible sections feature. Hover this H1 title to reveal its toggle in the left margin.
 
 ## Section 1: Introduction
 
@@ -42,6 +42,8 @@ function example() {
 ```
 
 ## Section 3: Nested Headings
+
+Hover each heading below (H2 through H6) to reveal its toggle. Collapse it and move away: the toggle stays visible. Clicking or selecting the heading text should keep the section open.
 
 ### Level 3 Heading
 

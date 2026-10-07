@@ -21,18 +21,23 @@
   transform: scale(1.2);
 }
 
-/* Heading-specific toggle styles */
+/* Keep heading controls in the left margin, aligned with the first line. */
 .outliner-heading {
-  cursor: pointer;
+  position: relative;
 }
 
-.outliner-heading:hover {
-  opacity: 0.8;
+.outliner-heading-gutter,
+.outliner-list-gutter {
+  position: absolute;
+  display: flex;
+  align-items: center;
 }
 
-.outliner-heading .outliner-toggle {
-  vertical-align: middle;
-  margin-right: 0.5em;
+.outliner-heading-gutter {
+  inset-inline-start: -20px;
+  top: 0;
+  width: 20px;
+  height: 1lh;
 }
 
 /* Reserve space before the native bullet or number. */
@@ -47,22 +52,23 @@
 }
 
 .outliner-list-gutter {
-  position: absolute;
   inset-inline-start: calc(-1 * var(--outliner-gutter-width));
   top: var(--outliner-list-offset, 0px);
   width: var(--outliner-gutter-width);
   height: var(--outliner-list-line-height, 1.5em);
-  display: flex;
-  align-items: center;
 }
 
+.outliner-heading > .outliner-heading-gutter > .outliner-toggle,
 .outliner-list-item > .outliner-list-gutter > .outliner-list-toggle {
   margin: 0;
   opacity: 0;
   pointer-events: none;
 }
 
-/* Hovering a nested list should reveal only that item's control. */
+/* Reveal controls on hover, while collapsed, or for keyboard focus. */
+.outliner-heading:hover > .outliner-heading-gutter > .outliner-toggle,
+.outliner-heading.collapsed > .outliner-heading-gutter > .outliner-toggle,
+.outliner-heading > .outliner-heading-gutter > .outliner-toggle:focus-visible,
 .outliner-list-item:hover:not(:has(> ul:hover, > ol:hover)) > .outliner-list-gutter > .outliner-list-toggle,
 .outliner-list-item.collapsed > .outliner-list-gutter > .outliner-list-toggle,
 .outliner-list-item > .outliner-list-gutter > .outliner-list-toggle:focus-visible {
@@ -134,11 +140,6 @@ body.vscode-high-contrast .outliner-toggle:hover {
 .outliner-list-item > ul,
 .outliner-list-item > ol {
   margin-top: 0.3em;
-}
-
-/* Make the entire heading clickable for better UX */
-.outliner-heading {
-  user-select: none;
 }
 
 /* Prevent text selection during clicking */
