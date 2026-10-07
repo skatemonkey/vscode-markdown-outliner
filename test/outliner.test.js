@@ -73,7 +73,7 @@ function getHeadingToggle(heading) {
 
 // Helper to get toggle button for a list item
 function getListToggle(listItem) {
-  return listItem.querySelector('.outliner-list-toggle');
+  return listItem.querySelector(':scope > .outliner-list-gutter > .outliner-list-toggle');
 }
 
 // Helper to check if element is hidden
@@ -255,7 +255,7 @@ describe('Markdown Outliner - Regression Protection', () => {
     ['heading', '<h2 id="label">Parent item</h2>'],
     ['blockquote', '<blockquote><p id="label"><strong>Sol:</strong> Shift wind-down times earlier.</p></blockquote>'],
     ['nested blockquote', '<blockquote><blockquote><p id="label">Parent item</p></blockquote></blockquote>'],
-  ])('list toggle stays beside the parent text in a %s', (_type, labelHtml) => {
+  ])('list toggle stays outside the parent content in a %s', (_type, labelHtml) => {
     setupTestDocument(`
       <ul>
         <li id="parent">
@@ -270,14 +270,21 @@ describe('Markdown Outliner - Regression Protection', () => {
     const nested = document.getElementById('nested');
     const toggle = getListToggle(parent);
 
-    expect(toggle.parentElement).toBe(label);
+    expect(toggle.closest('li')).toBe(parent);
+    expect(label.contains(toggle)).toBe(false);
+    expect(getComputedStyle(toggle).opacity).toBe('0');
+
+    click(label);
+    expect(isHidden(nested)).toBe(false);
 
     click(toggle);
     expect(isHidden(nested)).toBe(true);
     expect(isHidden(label)).toBe(false);
+    expect(getComputedStyle(toggle).opacity).toBe('1');
 
     click(toggle);
     expect(isHidden(nested)).toBe(false);
+    expect(getComputedStyle(toggle).opacity).toBe('0');
 
     window.markdownOutliner.refresh();
     expect(parent.querySelectorAll('.outliner-list-toggle')).toHaveLength(1);
@@ -294,7 +301,8 @@ describe('Markdown Outliner - Regression Protection', () => {
     `);
 
     const parent = document.getElementById('parent');
-    expect(getListToggle(parent).parentElement).toBe(parent);
+    expect(getListToggle(parent).closest('li')).toBe(parent);
+    expect(parent.querySelector('blockquote').querySelector('.outliner-toggle')).toBeNull();
   });
 
   test.each([
@@ -316,9 +324,8 @@ describe('Markdown Outliner - Regression Protection', () => {
     const nested = document.getElementById('nested');
     const toggle = getListToggle(parent);
 
-    expect(toggle.parentElement).toBe(codeBlock.parentElement);
-    expect(getComputedStyle(toggle.parentElement).display).toBe('flex');
-    expect(toggle.nextElementSibling).toBe(codeBlock);
+    expect(toggle.closest('li')).toBe(parent);
+    expect(codeBlock.contains(toggle)).toBe(false);
     expect(codeBlock.textContent).toBe('let x = 42;\nsecond line');
 
     click(toggle);
@@ -330,6 +337,51 @@ describe('Markdown Outliner - Regression Protection', () => {
     window.markdownOutliner.refresh();
     expect(parent.querySelectorAll('.outliner-list-toggle')).toHaveLength(1);
     expect(parent.querySelector('code')).toBe(code);
+  });
+
+  test.each(['ul', 'ol'])('only the toggle folds a %s item, and its collapsed state persists', (listTag) => {
+    const html = `
+      <${listTag}>
+        <li id="parent"><span id="label">Parent item</span>
+          <ul id="nested"><li>Child item</li></ul>
+        </li>
+      </${listTag}>
+    `;
+    setupTestDocument(html);
+    const parent = document.getElementById('parent');
+    const toggle = getListToggle(parent);
+
+    click(parent);
+    click(document.getElementById('label'));
+    click(toggle.parentElement);
+    expect(isCollapsed(parent)).toBe(false);
+
+    toggle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    expect(isHidden(document.getElementById('nested'))).toBe(true);
+    expect(getComputedStyle(toggle).opacity).toBe('1');
+
+    setupTestDocument(html, false);
+    const restored = document.getElementById('parent');
+    expect(isCollapsed(restored)).toBe(true);
+    expect(getComputedStyle(getListToggle(restored)).opacity).toBe('1');
+
+    click(getListToggle(restored));
+    expect(isHidden(document.getElementById('nested'))).toBe(false);
+  });
+
+  test('numbered list markers retain their start, reversed order, and explicit values', () => {
+    setupTestDocument(`
+      <ol id="numbers" start="100" reversed>
+        <li id="first">First<ul><li>Child</li></ul></li>
+        <li id="second" value="20">Second<ul><li>Child</li></ul></li>
+        <li>Last</li>
+      </ol>
+    `);
+    const list = document.getElementById('numbers');
+    expect(list.start).toBe(100);
+    expect(list.reversed).toBe(true);
+    expect(document.getElementById('second').value).toBe(20);
+    expect(Array.from(list.children).map(item => item.tagName)).toEqual(['LI', 'LI', 'LI']);
   });
 
   test('empty document does not crash', () => {

@@ -353,13 +353,57 @@
     });
   }
 
+  // Reserve a gutter before the native markers, including multi-digit numbers.
+  function prepareListGutters() {
+    document.querySelectorAll('ul, ol').forEach(list => {
+      if (!list.querySelector(':scope > li > ul, :scope > li > ol')) return;
+      list.classList.add('outliner-list');
+      if (list.tagName !== 'OL') return;
+
+      const items = Array.from(list.children).filter(item => item.tagName === 'LI');
+      let number = list.hasAttribute('start') ? list.start : list.reversed ? items.length : 1;
+      let digits = 1;
+      items.forEach(item => {
+        if (item.hasAttribute('value')) number = item.value;
+        digits = Math.max(digits, String(number).length);
+        number += list.reversed ? -1 : 1;
+      });
+      list.style.setProperty('--outliner-marker-width', (digits + 1) + 'ch');
+    });
+  }
+
+  // Find the first visible line without changing the item's content.
+  function getListLabel(listItem) {
+    let label = listItem;
+    let firstContent = listItem.firstChild;
+    while (firstContent) {
+      if (firstContent.nodeType === Node.TEXT_NODE && firstContent.textContent.trim()) break;
+      if (firstContent.nodeType === Node.ELEMENT_NODE) {
+        if (firstContent.tagName === 'BLOCKQUOTE') {
+          label = firstContent;
+          firstContent = firstContent.firstChild;
+          continue;
+        }
+        if (firstContent.tagName === 'PRE') {
+          label = firstContent.querySelector('code > div') ||
+            firstContent.querySelector('code') || firstContent;
+        } else if (getComputedStyle(firstContent).display !== 'inline') {
+          label = firstContent;
+        }
+        break;
+      }
+      firstContent = firstContent.nextSibling;
+    }
+    return label;
+  }
+
   // Add toggle buttons to list items with nested lists
   function processLists() {
+    prepareListGutters();
     const listItems = document.querySelectorAll('li');
 
     listItems.forEach(listItem => {
-      // Skip if already processed (check both direct child and inside heading)
-      if (listItem.querySelector('.outliner-list-toggle')) return;
+      if (listItem.querySelector(':scope > .outliner-list-gutter')) return;
 
       const nested = getNestedListContent(listItem);
       if (nested.length === 0) return;
@@ -369,43 +413,31 @@
       const toggle = createToggleButton(isCollapsed);
 
       toggle.classList.add('outliner-list-toggle');
-
-      // Keep the toggle with the leading text, including inside blockquotes.
-      let toggleContainer = listItem;
-      let firstContent = listItem.firstChild;
-      while (firstContent) {
-        if (firstContent.nodeType === Node.TEXT_NODE && firstContent.textContent.trim()) {
-          break;
-        }
-        if (firstContent.nodeType === Node.ELEMENT_NODE) {
-          if (firstContent.tagName === 'BLOCKQUOTE') {
-            firstContent = firstContent.firstChild;
-            continue;
-          }
-          if (firstContent.tagName.match(/^(P|H[1-6])$/)) {
-            toggleContainer = firstContent;
-          } else if (firstContent.tagName === 'PRE') {
-            // Keep the control outside the code so copying it stays clean.
-            const row = document.createElement('div');
-            row.className = 'outliner-code-row';
-            const codeLine = firstContent.querySelector('code > div') ||
-              firstContent.querySelector('code') || firstContent;
-            const codeStyle = getComputedStyle(codeLine);
-            const offset = codeLine.getBoundingClientRect().top -
-              firstContent.getBoundingClientRect().top + (parseFloat(codeStyle.paddingTop) || 0);
-            row.style.setProperty('--outliner-code-offset', offset + 'px');
-            row.style.setProperty('--outliner-code-line-height', codeStyle.lineHeight);
-            firstContent.before(row);
-            row.appendChild(firstContent);
-            toggleContainer = row;
-          }
-          break;
-        }
-        firstContent = firstContent.nextSibling;
-      }
-      toggleContainer.insertBefore(toggle, toggleContainer.firstChild);
+      toggle.tabIndex = 0;
 
       listItem.classList.add('outliner-list-item');
+      const label = getListLabel(listItem);
+      const labelStyle = getComputedStyle(label);
+      const gutter = document.createElement('span');
+      gutter.className = 'outliner-list-gutter';
+      const codeBlock = label.closest('pre');
+      if (codeBlock) {
+        // Give the native marker the same first-line baseline as the code.
+        const row = document.createElement('div');
+        row.className = 'outliner-code-row';
+        const codeOffset = label.getBoundingClientRect().top - codeBlock.getBoundingClientRect().top +
+          (parseFloat(labelStyle.paddingTop) || 0);
+        row.style.setProperty('--outliner-code-offset', codeOffset + 'px');
+        row.style.setProperty('--outliner-code-line-height', labelStyle.lineHeight);
+        codeBlock.before(row);
+        row.appendChild(codeBlock);
+      }
+      const offset = label.getBoundingClientRect().top - listItem.getBoundingClientRect().top +
+        (parseFloat(labelStyle.paddingTop) || 0);
+      gutter.style.setProperty('--outliner-list-offset', offset + 'px');
+      gutter.style.setProperty('--outliner-list-line-height', labelStyle.lineHeight);
+      gutter.appendChild(toggle);
+      listItem.insertBefore(gutter, listItem.firstChild);
 
       // Apply saved state
       if (isCollapsed) {
@@ -415,6 +447,12 @@
 
       // Add click handler
       toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleListItem(listItem);
+      });
+      toggle.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
         e.stopPropagation();
         toggleListItem(listItem);
       });

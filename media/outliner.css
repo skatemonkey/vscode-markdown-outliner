@@ -35,22 +35,52 @@
   margin-right: 0.5em;
 }
 
-/* List item toggle styles */
-.outliner-list-toggle {
-  margin-right: 0.5em;
+/* Reserve space before the native bullet or number. */
+.outliner-list {
+  --outliner-marker-width: 1em;
+  --outliner-gutter-width: calc(var(--outliner-marker-width) + 0.5em + 20px);
+  padding-inline-start: var(--outliner-gutter-width);
 }
 
-/* Keep code blocks and their controls on the same row. */
+.outliner-list-item {
+  position: relative;
+}
+
+.outliner-list-gutter {
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--outliner-gutter-width));
+  top: var(--outliner-list-offset, 0px);
+  width: var(--outliner-gutter-width);
+  height: var(--outliner-list-line-height, 1.5em);
+  display: flex;
+  align-items: center;
+}
+
+.outliner-list-item > .outliner-list-gutter > .outliner-list-toggle {
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hovering a nested list should reveal only that item's control. */
+.outliner-list-item:hover:not(:has(> ul:hover, > ol:hover)) > .outliner-list-gutter > .outliner-list-toggle,
+.outliner-list-item.collapsed > .outliner-list-gutter > .outliner-list-toggle,
+.outliner-list-item > .outliner-list-gutter > .outliner-list-toggle:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Align the native marker with the first code line, including padded highlighting. */
 .outliner-code-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.5em;
 }
 
-.outliner-code-row > .outliner-list-toggle {
+.outliner-code-row::before {
+  content: '\200b';
+  width: 0;
   flex-shrink: 0;
-  height: auto;
-  margin: var(--outliner-code-offset, 16px) 0 0;
+  padding-top: var(--outliner-code-offset, 16px);
   line-height: var(--outliner-code-line-height, inherit);
 }
 
@@ -83,7 +113,7 @@
 }
 
 /* Accessibility improvements */
-.outliner-toggle:focus {
+.outliner-toggle:focus-visible {
   outline: 2px solid var(--vscode-focusBorder, #007acc);
   outline-offset: 2px;
   border-radius: 2px;

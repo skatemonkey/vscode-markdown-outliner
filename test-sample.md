@@ -77,6 +77,40 @@ This section contains various types of content:
    2. Another nested numbered item
 3. Numbered list item 3
 
+### Hover controls with longer numbers
+
+98. Hover this item to reveal its toggle to the left of the number.
+    - Child item
+99. Collapse this item, then move the pointer away: its toggle stays visible.
+    - Child item
+100. Click the text or number: only the toggle should fold the children.
+     - Child item
+
+### Multi-level mixed lists
+
+Five levels mixing numbers and bullets: hover and fold each parent independently.
+
+1. Project plan
+   - Planning
+     - Define the scope
+       1. Confirm the requirements
+          - Record the expected behavior
+          - List the edge cases
+       2. Choose a test sample
+     - Agree on the timeline
+   - Implementation
+     1. Make the change
+        - Keep the code clean
+     2. Run the relevant checks
+   - Review
+     - Check every nesting level
+     - Verify the hover controls
+   - Follow-up
+     - Record any remaining issues
+2. Release checklist
+   - Review the final changes
+   - Try the extension in VS Code
+
 ## Logseq style bullets
 
 - ## Bullet with heading
@@ -100,7 +134,7 @@ This section contains various types of content:
   - Keep a consistent wake-up time.
   - Move bedtime earlier gradually.
 
-The toggle should sit inside the quote beside "Sol:" and collapse the two child items.
+Hover the quote to show the toggle to the left of its bullet. Collapse it and the toggle stays visible.
 
 ### Tables
 
