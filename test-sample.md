@@ -94,6 +94,14 @@ This section contains various types of content:
     > "hi"
     - no really
 
+### List item starting with a blockquote
+
+- > **Sol:** Shift wind-down and wake-up times earlier gradually, prioritizing wake-up time.
+  - Keep a consistent wake-up time.
+  - Move bedtime earlier gradually.
+
+The toggle should sit inside the quote beside "Sol:" and collapse the two child items.
+
 ### Tables
 
 | Column 1 | Column 2 | Column 3 |

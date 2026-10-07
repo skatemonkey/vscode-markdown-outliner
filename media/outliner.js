@@ -370,16 +370,40 @@
 
       toggle.classList.add('outliner-list-toggle');
 
-      // If the list item starts with a heading, insert toggle inside the heading
-      // Otherwise, insert at the beginning of the list item
-      const firstElement = listItem.firstElementChild;
-      if (firstElement && firstElement.tagName.match(/^H[1-6]$/)) {
-        firstElement.insertBefore(toggle, firstElement.firstChild);
-      } else if (firstElement && firstElement.tagName === 'P') {
-        firstElement.insertBefore(toggle, firstElement.firstChild);
-      } else {
-        listItem.insertBefore(toggle, listItem.firstChild);
+      // Keep the toggle with the leading text, including inside blockquotes.
+      let toggleContainer = listItem;
+      let firstContent = listItem.firstChild;
+      while (firstContent) {
+        if (firstContent.nodeType === Node.TEXT_NODE && firstContent.textContent.trim()) {
+          break;
+        }
+        if (firstContent.nodeType === Node.ELEMENT_NODE) {
+          if (firstContent.tagName === 'BLOCKQUOTE') {
+            firstContent = firstContent.firstChild;
+            continue;
+          }
+          if (firstContent.tagName.match(/^(P|H[1-6])$/)) {
+            toggleContainer = firstContent;
+          } else if (firstContent.tagName === 'PRE') {
+            // Keep the control outside the code so copying it stays clean.
+            const row = document.createElement('div');
+            row.className = 'outliner-code-row';
+            const codeLine = firstContent.querySelector('code > div') ||
+              firstContent.querySelector('code') || firstContent;
+            const codeStyle = getComputedStyle(codeLine);
+            const offset = codeLine.getBoundingClientRect().top -
+              firstContent.getBoundingClientRect().top + (parseFloat(codeStyle.paddingTop) || 0);
+            row.style.setProperty('--outliner-code-offset', offset + 'px');
+            row.style.setProperty('--outliner-code-line-height', codeStyle.lineHeight);
+            firstContent.before(row);
+            row.appendChild(firstContent);
+            toggleContainer = row;
+          }
+          break;
+        }
+        firstContent = firstContent.nextSibling;
       }
+      toggleContainer.insertBefore(toggle, toggleContainer.firstChild);
 
       listItem.classList.add('outliner-list-item');
 

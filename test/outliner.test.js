@@ -9,6 +9,7 @@ const path = require('path');
 // Read the outliner script
 const scriptPath = path.join(__dirname, '../media/outliner.js');
 const scriptContent = fs.readFileSync(scriptPath, 'utf8');
+const stylesheetContent = fs.readFileSync(path.join(__dirname, '../media/outliner.css'), 'utf8');
 
 // Shared mock storage that persists across test document setups
 const mockStorage = {};
@@ -18,6 +19,9 @@ function setupTestDocument(html, clearStorage = true) {
   // Reset document
   document.body.innerHTML = html;
   document.head.innerHTML = '';
+  const style = document.createElement('style');
+  style.textContent = stylesheetContent;
+  document.head.appendChild(style);
 
   // Clear previous outliner instance and script
   if (window.markdownOutliner) {
@@ -246,6 +250,88 @@ describe('Markdown Outliner - Core User Behaviors', () => {
 });
 
 describe('Markdown Outliner - Regression Protection', () => {
+  test.each([
+    ['paragraph', '<p id="label">Parent item</p>'],
+    ['heading', '<h2 id="label">Parent item</h2>'],
+    ['blockquote', '<blockquote><p id="label"><strong>Sol:</strong> Shift wind-down times earlier.</p></blockquote>'],
+    ['nested blockquote', '<blockquote><blockquote><p id="label">Parent item</p></blockquote></blockquote>'],
+  ])('list toggle stays beside the parent text in a %s', (_type, labelHtml) => {
+    setupTestDocument(`
+      <ul>
+        <li id="parent">
+          ${labelHtml}
+          <ul id="nested"><li>Child item</li></ul>
+        </li>
+      </ul>
+    `);
+
+    const parent = document.getElementById('parent');
+    const label = document.getElementById('label');
+    const nested = document.getElementById('nested');
+    const toggle = getListToggle(parent);
+
+    expect(toggle.parentElement).toBe(label);
+
+    click(toggle);
+    expect(isHidden(nested)).toBe(true);
+    expect(isHidden(label)).toBe(false);
+
+    click(toggle);
+    expect(isHidden(nested)).toBe(false);
+
+    window.markdownOutliner.refresh();
+    expect(parent.querySelectorAll('.outliner-list-toggle')).toHaveLength(1);
+  });
+
+  test('list toggle stays with leading text when a blockquote follows it', () => {
+    setupTestDocument(`
+      <ul>
+        <li id="parent">Parent item
+          <blockquote><p>Supporting quote</p></blockquote>
+          <ul><li>Child item</li></ul>
+        </li>
+      </ul>
+    `);
+
+    const parent = document.getElementById('parent');
+    expect(getListToggle(parent).parentElement).toBe(parent);
+  });
+
+  test.each([
+    ['code block', '<pre><code><div>let x = 42;\nsecond line</div></code></pre>'],
+    ['quoted code block', '<blockquote><pre><code><div>let x = 42;\nsecond line</div></code></pre></blockquote>'],
+  ])('list toggle sits beside a %s without changing its code', (_type, codeHtml) => {
+    setupTestDocument(`
+      <ul>
+        <li id="parent">
+          ${codeHtml}
+          <ul id="nested"><li>Child item</li></ul>
+        </li>
+      </ul>
+    `);
+
+    const parent = document.getElementById('parent');
+    const codeBlock = parent.querySelector('pre');
+    const code = codeBlock.querySelector('code');
+    const nested = document.getElementById('nested');
+    const toggle = getListToggle(parent);
+
+    expect(toggle.parentElement).toBe(codeBlock.parentElement);
+    expect(getComputedStyle(toggle.parentElement).display).toBe('flex');
+    expect(toggle.nextElementSibling).toBe(codeBlock);
+    expect(codeBlock.textContent).toBe('let x = 42;\nsecond line');
+
+    click(toggle);
+    expect(isHidden(nested)).toBe(true);
+    expect(isHidden(codeBlock)).toBe(false);
+    click(toggle);
+    expect(isHidden(nested)).toBe(false);
+
+    window.markdownOutliner.refresh();
+    expect(parent.querySelectorAll('.outliner-list-toggle')).toHaveLength(1);
+    expect(parent.querySelector('code')).toBe(code);
+  });
+
   test('empty document does not crash', () => {
     expect(() => setupTestDocument('')).not.toThrow();
   });
