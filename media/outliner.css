@@ -43,7 +43,7 @@
 /* Reserve space before the native bullet or number. */
 .outliner-list {
   --outliner-marker-width: 1em;
-  --outliner-gutter-width: calc(var(--outliner-marker-width) + 0.5em + 20px);
+  --outliner-gutter-width: calc(var(--outliner-marker-width) + 20px);
   padding-inline-start: var(--outliner-gutter-width);
 }
 
