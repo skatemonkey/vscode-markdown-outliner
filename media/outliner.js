@@ -363,7 +363,7 @@
   // Reserve a gutter before the native markers, including multi-digit numbers.
   function prepareListGutters() {
     document.querySelectorAll('ul, ol').forEach(list => {
-      if (!list.querySelector(':scope > li > ul, :scope > li > ol')) return;
+      if (!list.closest('li') && !list.querySelector(':scope > li > ul, :scope > li > ol')) return;
       list.classList.add('outliner-list');
       if (list.tagName !== 'OL') return;
 

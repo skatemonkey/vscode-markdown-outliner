@@ -40,11 +40,11 @@
   height: 1lh;
 }
 
-/* Reserve space before the native bullet or number. */
+/* Keep list indentation compact; controls extend into the left margin. */
 .outliner-list {
-  --outliner-marker-width: 1em;
+  --outliner-marker-width: 0.75em;
   --outliner-gutter-width: calc(var(--outliner-marker-width) + 20px);
-  padding-inline-start: var(--outliner-gutter-width);
+  padding-inline-start: calc(var(--outliner-marker-width) + 4px);
 }
 
 .outliner-list-item {
