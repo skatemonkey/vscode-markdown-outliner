@@ -341,6 +341,94 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(parent.querySelector('blockquote').querySelector('.outliner-toggle')).toBeNull();
   });
 
+  test.each(['ul', 'ol'].flatMap(listTag => [
+    ['paragraph', '<p id="content">Supporting paragraph</p>'],
+    ['table', '<table id="content"><tbody><tr><td>Table cell</td></tr></tbody></table>'],
+    ['quote', '<blockquote id="content"><p>Supporting quote</p></blockquote>'],
+    ['code', '<pre id="content"><code>const answer = 42;</code></pre>'],
+  ].map(([type, content]) => [listTag, type, content])))('%s item folds its %s without a nested list', (listTag, _type, content) => {
+    const html = `<${listTag}><li id="parent"><p id="label">Parent item</p>${content}</li></${listTag}>`;
+    setupTestDocument(html);
+    const parent = document.getElementById('parent');
+    const toggle = getListToggle(parent);
+    expect(toggle).toBeTruthy();
+
+    click(toggle);
+    expect(isHidden(document.getElementById('content'))).toBe(true);
+    expect(isHidden(document.getElementById('label'))).toBe(false);
+
+    setupTestDocument(html, false);
+    const restored = document.getElementById('parent');
+    expect(isCollapsed(restored)).toBe(true);
+    expect(isHidden(document.getElementById('content'))).toBe(true);
+    click(getListToggle(restored));
+    expect(isHidden(document.getElementById('content'))).toBe(false);
+
+    window.markdownOutliner.refresh();
+    expect(restored.querySelectorAll('.outliner-list-toggle')).toHaveLength(1);
+  });
+
+  test('folding block content preserves inline formatting in a tight list label', () => {
+    setupTestDocument(`
+      <ul><li id="parent"><strong id="label">Parent</strong> with <code id="inline">inline code</code>
+        <p id="content">Supporting paragraph</p>
+      </li></ul>
+    `);
+
+    click(getListToggle(document.getElementById('parent')));
+    expect(isHidden(document.getElementById('content'))).toBe(true);
+    expect(isHidden(document.getElementById('label'))).toBe(false);
+    expect(isHidden(document.getElementById('inline'))).toBe(false);
+  });
+
+  test('mixed blocks fold together while nested items retain their independent state', () => {
+    const html = `
+      <ul><li id="parent"><p>Parent item</p>
+        <p id="paragraph">Supporting paragraph</p>
+        <table id="table"><tbody><tr><td>Table cell</td></tr></tbody></table>
+        <blockquote id="quote"><p>Supporting quote</p></blockquote>
+        <pre id="code"><code>const answer = 42;</code></pre>
+        <ol id="children">
+          <li id="child"><p>Child item</p>
+            <blockquote id="child-quote"><p>Child quote</p></blockquote>
+            <ul id="grandchildren"><li id="grandchild">Grandchild
+              <p id="deep-paragraph">Deep paragraph</p>
+            </li></ul>
+          </li>
+          <li id="sibling">Sibling<p id="sibling-paragraph">Sibling paragraph</p></li>
+        </ol>
+      </li></ul>
+    `;
+    setupTestDocument(html);
+    click(getListToggle(document.getElementById('grandchild')));
+    click(getListToggle(document.getElementById('child')));
+    expect(isHidden(document.getElementById('child-quote'))).toBe(true);
+    expect(isHidden(document.getElementById('grandchildren'))).toBe(true);
+    expect(isHidden(document.getElementById('sibling-paragraph'))).toBe(false);
+
+    click(getListToggle(document.getElementById('parent')));
+    const parentContent = ['paragraph', 'table', 'quote', 'code', 'children'];
+    parentContent.forEach(id => expect(isHidden(document.getElementById(id))).toBe(true));
+
+    setupTestDocument(html, false);
+    parentContent.forEach(id => expect(isHidden(document.getElementById(id))).toBe(true));
+    click(getListToggle(document.getElementById('parent')));
+    parentContent.forEach(id => expect(isHidden(document.getElementById(id))).toBe(false));
+    expect(isCollapsed(document.getElementById('child'))).toBe(true);
+    expect(isHidden(document.getElementById('child-quote'))).toBe(true);
+    expect(isHidden(document.getElementById('grandchildren'))).toBe(true);
+
+    click(getListToggle(document.getElementById('child')));
+    expect(isHidden(document.getElementById('child-quote'))).toBe(false);
+    expect(isHidden(document.getElementById('grandchildren'))).toBe(false);
+    expect(isHidden(document.getElementById('deep-paragraph'))).toBe(true);
+
+    window.markdownOutliner.expandAll();
+    expect(isHidden(document.getElementById('deep-paragraph'))).toBe(false);
+    window.markdownOutliner.collapseAll();
+    expect(isHidden(document.getElementById('sibling-paragraph'))).toBe(true);
+  });
+
   test.each([
     ['code block', '<pre><code><div>let x = 42;\nsecond line</div></code></pre>'],
     ['quoted code block', '<blockquote><pre><code><div>let x = 42;\nsecond line</div></code></pre></blockquote>'],

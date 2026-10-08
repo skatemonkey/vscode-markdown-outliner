@@ -63,10 +63,15 @@
     return content;
   }
 
-  // Get nested list content for a list item
-  function getNestedListContent(listItem) {
-    const nested = listItem.querySelectorAll(':scope > ul, :scope > ol');
-    return Array.from(nested);
+  // Fold block content after the item's opening text or block.
+  function getListContent(listItem) {
+    const label = getListLabel(listItem);
+    return Array.from(listItem.children).filter(child => {
+      if (child.matches('ul, ol')) return true;
+      if (child.classList.contains('outliner-list-gutter') || child.contains(label)) return false;
+      const display = getComputedStyle(child).display;
+      return display !== '' && !display.startsWith('inline');
+    });
   }
 
   // Create collapse/expand toggle button
@@ -300,7 +305,7 @@
     if (!toggle) return;
 
     const isCollapsed = forceState !== null ? forceState : !listItem.classList.contains('collapsed');
-    const content = getNestedListContent(listItem);
+    const content = getListContent(listItem);
 
     if (content.length === 0) return;
 
@@ -363,11 +368,11 @@
   // Reserve a gutter before the native markers, including multi-digit numbers.
   function prepareListGutters() {
     document.querySelectorAll('ul, ol').forEach(list => {
-      if (!list.closest('li') && !list.querySelector(':scope > li > ul, :scope > li > ol')) return;
+      const items = Array.from(list.children).filter(item => item.tagName === 'LI');
+      if (!list.closest('li') && !items.some(item => getListContent(item).length > 0)) return;
       list.classList.add('outliner-list');
       if (list.tagName !== 'OL') return;
 
-      const items = Array.from(list.children).filter(item => item.tagName === 'LI');
       let number = list.hasAttribute('start') ? list.start : list.reversed ? items.length : 1;
       let digits = 1;
       items.forEach(item => {
@@ -386,6 +391,10 @@
     while (firstContent) {
       if (firstContent.nodeType === Node.TEXT_NODE && firstContent.textContent.trim()) break;
       if (firstContent.nodeType === Node.ELEMENT_NODE) {
+        if (firstContent.classList.contains('outliner-list-gutter')) {
+          firstContent = firstContent.nextSibling;
+          continue;
+        }
         if (firstContent.tagName === 'BLOCKQUOTE') {
           label = firstContent;
           firstContent = firstContent.firstChild;
@@ -404,7 +413,7 @@
     return label;
   }
 
-  // Add toggle buttons to list items with nested lists
+  // Add toggle buttons to list items with collapsible block content.
   function processLists() {
     prepareListGutters();
     const listItems = document.querySelectorAll('li');
@@ -412,8 +421,8 @@
     listItems.forEach(listItem => {
       if (listItem.querySelector(':scope > .outliner-list-gutter')) return;
 
-      const nested = getNestedListContent(listItem);
-      if (nested.length === 0) return;
+      const content = getListContent(listItem);
+      if (content.length === 0) return;
 
       const key = getElementKey(listItem);
       const isCollapsed = collapsedState[key] || false;
@@ -448,7 +457,7 @@
       // Apply saved state
       if (isCollapsed) {
         listItem.classList.add('collapsed');
-        nested.forEach(el => el.classList.add('outliner-hidden'));
+        content.forEach(el => el.classList.add('outliner-hidden'));
       }
 
       // Add context menu handler
@@ -500,7 +509,7 @@
       toggleListItem,
       getElementKey,
       getCollapsibleContent,
-      getNestedListContent
+      getListContent
     }
   };
 

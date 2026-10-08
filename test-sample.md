@@ -121,6 +121,76 @@ Five levels mixing numbers and bullets: hover and fold each parent independently
 
   - Test with inner bullet point
 
+### Bullet items with block content
+
+Compare the items below with the mixed item's toggle to see which content folds.
+
+- `tables`: table layout and routing strategies.
+
+  | Table name | `actualDataNodes` | `shardingColumn` | Database algorithm | Table algorithm |
+  | --- | --- | --- | --- | --- |
+  | `t_user` | `ds_${0..1}.t_user_${0..31}` | `username` | `user_database_hash_mod` | `user_table_hash_mod` |
+  | `t_passenger` | `ds_${0..1}.t_passenger_${0..31}` | `username` | `passenger_database_hash_mod` | `passenger_table_hash_mod` |
+  | `t_user_mail` | `ds_${0..1}.t_user_mail_${0..31}` | `mail` | `t_user_mail_database_hash_mod` | `t_user_mail_table_hash_mod` |
+  | `t_user_phone` | `ds_${0..1}.t_user_phone_${0..31}` | `phone` | `t_user_phone_database_hash_mod` | `t_user_phone_table_hash_mod` |
+
+- Bullet with a plain paragraph
+
+  This sentence belongs to the bullet above, without a bullet of its own.
+
+- Bullet with a quote
+
+  > This quote belongs to the bullet above.
+  >
+  > It has a second paragraph too.
+
+- Bullet with a code block
+
+  ```javascript
+  const answer = 42;
+  console.log(answer);
+  ```
+
+- Mixed content with a nested bullet
+
+  This is a plain paragraph inside the parent item.
+
+  | Content | Example |
+  | --- | --- |
+  | Table row | Inside the parent item |
+
+  > A quote inside the same parent item.
+
+  ```javascript
+  const nested = true;
+  ```
+
+  - Level 2: nested bullet with its own paragraph and quote
+
+    This paragraph belongs to level 2.
+
+    > This quote belongs to level 2 too.
+
+    1. Level 3: numbered item with a table
+
+       | Step | Status |
+       | --- | --- |
+       | Check nested folding | Ready |
+
+       - Level 4: bullet with a code block
+
+         ```javascript
+         const depth = 4;
+         ```
+
+         - Level 5: deepest bullet
+
+    2. Level 3: sibling numbered item
+
+       This paragraph should fold with this numbered item.
+
+  - Level 2: sibling bullet that stays visible when the other nested item folds
+
 ## Logseq style bullets
 
 - ## Bullet with heading
