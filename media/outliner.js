@@ -56,7 +56,8 @@
           break;
         }
       }
-      content.push(next);
+      // Extension controls are outside the document's foldable content.
+      if (!next.hasAttribute('data-outliner-ui')) content.push(next);
       next = next.nextElementSibling;
     }
 
@@ -101,6 +102,7 @@
 
     const menu = document.createElement('div');
     menu.className = 'outliner-context-menu';
+    menu.dataset.outlinerUi = 'menu';
     menu.innerHTML = `
       <div class="outliner-menu-item" data-action="collapse-children">Collapse All</div>
       <div class="outliner-menu-item" data-action="expand-children">Expand All</div>
@@ -331,6 +333,7 @@
     const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
     headings.forEach(heading => {
+      if (heading.closest('[data-outliner-ui]')) return;
       // Skip if already processed
       if (heading.querySelector('.outliner-toggle')) return;
 
@@ -368,6 +371,7 @@
   // Reserve a gutter before the native markers, including multi-digit numbers.
   function prepareListGutters() {
     document.querySelectorAll('ul, ol').forEach(list => {
+      if (list.closest('[data-outliner-ui]')) return;
       const items = Array.from(list.children).filter(item => item.tagName === 'LI');
       if (!list.closest('li') && !items.some(item => getListContent(item).length > 0)) return;
       list.classList.add('outliner-list');
@@ -419,6 +423,7 @@
     const listItems = document.querySelectorAll('li');
 
     listItems.forEach(listItem => {
+      if (listItem.closest('[data-outliner-ui]')) return;
       if (listItem.querySelector(':scope > .outliner-list-gutter')) return;
 
       const content = getListContent(listItem);
@@ -489,6 +494,24 @@
     });
   }
 
+  // Reveal a navigation target without expanding unrelated sections or children.
+  function revealHeading(heading) {
+    if (!heading?.isConnected || !/^H[1-6]$/.test(heading.tagName) ||
+        heading.closest('[data-outliner-ui]')) return false;
+
+    document.querySelectorAll('.outliner-heading.collapsed, .outliner-list-item.collapsed')
+      .forEach(section => {
+        if (section.classList.contains('outliner-heading')) {
+          if (section === heading || getCollapsibleContent(section).some(content => content.contains(heading))) {
+            toggleHeading(section, false);
+          }
+        } else if (section.contains(heading)) {
+          toggleListItem(section, false);
+        }
+      });
+    return true;
+  }
+
   // Initialize the outliner
   function init() {
     loadState();
@@ -500,6 +523,7 @@
   window.markdownOutliner = {
     collapseAll,
     expandAll,
+    revealHeading,
     refresh: init,
     // Internal functions exposed for testing
     _test: {

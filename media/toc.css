@@ -1,0 +1,244 @@
+/* Hover previews are overlays. Only a pinned sidebar reserves reading space. */
+.outliner-toc {
+  --toc-accent: var(--vscode-textLink-foreground, #8b72f8);
+  --toc-surface: var(--vscode-editor-background, #1e1e1e);
+  --toc-foreground: var(--vscode-editor-foreground, #d4d4d4);
+  --toc-muted: var(--vscode-descriptionForeground, #a0a0a0);
+  --toc-border: var(--vscode-widget-border, color-mix(in srgb, var(--toc-foreground) 12%, transparent));
+  --toc-max-height: min(72vh, 600px, calc(100vh - 96px));
+  --toc-max-height: min(72dvh, 600px, calc(100dvh - 96px));
+  position: fixed;
+  z-index: 100;
+  top: clamp(24px, 8vh, 72px);
+  right: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--toc-foreground);
+  font-family: var(--vscode-font-family, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.outliner-toc,
+.outliner-toc * {
+  box-sizing: border-box;
+}
+
+.outliner-toc[hidden],
+.outliner-toc [hidden] {
+  display: none !important;
+}
+
+.outliner-toc button {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.outliner-toc .outliner-toc-rail {
+  display: block;
+  flex: none;
+  width: 40px;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.outliner-toc-marks {
+  display: grid;
+  grid-template-rows: repeat(var(--toc-count, 1), minmax(0, 1fr));
+  justify-items: end;
+  align-items: center;
+  height: min(calc(var(--toc-count, 1) * 16px), var(--toc-max-height));
+}
+
+.outliner-toc-mark {
+  width: max(6px, calc(24px - var(--toc-depth, 0) * 4px));
+  height: 3px;
+  max-height: 100%;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--toc-foreground) 20%, transparent);
+}
+
+.outliner-toc-mark.is-active {
+  background: var(--toc-foreground);
+}
+
+.outliner-toc-panel {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 288px;
+  max-width: calc(100vw - 68px);
+  max-height: var(--toc-max-height);
+  overflow: hidden;
+  border: 1px solid var(--toc-border);
+  border-radius: 10px;
+  background: var(--toc-surface);
+  box-shadow: 0 4px 20px var(--vscode-widget-shadow, rgb(0 0 0 / 12%));
+}
+
+.outliner-toc .outliner-toc-close {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  color: var(--toc-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.outliner-toc-items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  padding: 10px;
+}
+
+/* Only the pinned sidebar has a close control to reserve space for. */
+.outliner-toc.is-sidebar .outliner-toc-items {
+  padding-right: 38px;
+}
+
+.outliner-toc-panel:hover .outliner-toc-items,
+.outliner-toc-panel:focus-within .outliner-toc-items {
+  scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
+}
+
+.outliner-toc .outliner-toc-item {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 6px 4px calc(6px + var(--toc-depth, 0) * 14px);
+  border-radius: 4px;
+  color: var(--toc-muted);
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.outliner-toc .outliner-toc-item:hover,
+.outliner-toc .outliner-toc-close:hover,
+.outliner-toc .outliner-toc-sidebar-button:hover {
+  color: var(--toc-foreground);
+  background: color-mix(in srgb, var(--toc-foreground) 6%, transparent);
+}
+
+.outliner-toc .outliner-toc-item[aria-current] {
+  color: var(--toc-accent);
+}
+
+.outliner-toc-footer {
+  flex: none;
+  padding: 6px;
+  border-top: 1px solid var(--toc-border);
+}
+
+.outliner-toc .outliner-toc-sidebar-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--toc-muted);
+  font-size: 12px;
+  text-align: start;
+}
+
+.outliner-toc-sidebar-icon {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 12px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+
+.outliner-toc-sidebar-icon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 3px;
+  border-left: 1px solid currentColor;
+}
+
+.outliner-toc button:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder, var(--toc-accent));
+  outline-offset: -2px;
+}
+
+.outliner-toc.is-sidebar {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 288px;
+  max-width: calc(100vw - 32px);
+}
+
+.outliner-toc.is-sidebar .outliner-toc-panel {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-left: 1px solid var(--toc-border);
+  border-radius: 0;
+  background: var(--vscode-sideBar-background, var(--toc-surface));
+  box-shadow: none;
+}
+
+/* Narrow previews keep their reading width even with a sidebar open. */
+@media (min-width: 901px) {
+  body.outliner-toc-sidebar > .markdown-body {
+    margin-right: 288px;
+  }
+}
+
+@media (pointer: coarse) {
+  .outliner-toc .outliner-toc-item,
+  .outliner-toc .outliner-toc-close,
+  .outliner-toc .outliner-toc-sidebar-button {
+    min-height: 44px;
+  }
+  .outliner-toc .outliner-toc-close,
+  .outliner-toc .outliner-toc-rail {
+    min-width: 44px;
+  }
+  .outliner-toc .outliner-toc-close {
+    top: 10px;
+  }
+  .outliner-toc-panel {
+    max-width: calc(100vw - 72px);
+  }
+  .outliner-toc-items {
+    scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
+  }
+  .outliner-toc.is-sidebar .outliner-toc-items {
+    padding-right: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .outliner-toc button {
+    transition: color 120ms ease, background-color 120ms ease;
+  }
+}

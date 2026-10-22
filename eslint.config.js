@@ -3,6 +3,25 @@ const tsParser = require('@typescript-eslint/parser');
 
 module.exports = [
   {
+    files: ['media/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        window: 'readonly', document: 'readonly', localStorage: 'readonly',
+        console: 'readonly', Node: 'readonly', getComputedStyle: 'readonly',
+        MutationObserver: 'readonly', setTimeout: 'readonly',
+        requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'error',
+      'no-unused-vars': ['error', { caughtErrors: 'none' }],
+      'no-unreachable': 'error',
+      'eqeqeq': 'warn',
+    },
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       parser: tsParser,

@@ -23,10 +23,12 @@
   "main": "./out/extension.js",
   "contributes": {
     "markdown.previewScripts": [
-      "./media/outliner.js"
+      "./media/outliner.js",
+      "./media/toc.js"
     ],
     "markdown.previewStyles": [
-      "./media/outliner.css"
+      "./media/outliner.css",
+      "./media/toc.css"
     ]
   },
   "scripts": {
@@ -35,7 +37,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "test": "jest",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src media"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
