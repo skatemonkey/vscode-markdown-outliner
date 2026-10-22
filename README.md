@@ -11,7 +11,7 @@ A VSCode extension that adds collapsible sections to the markdown preview, makin
 ## Features
 
 - **Collapsible Headings**: Click the triangle icon next to any heading to collapse/expand all content under that heading
-- **Collapsible Lists**: Nested lists can be collapsed to hide sub-items
+- **Collapsible Lists**: Fold content within list items, including nested lists, paragraphs, tables, quotes, and code
 - **Context Menu**: Right-click any triangle icon for options to collapse/expand all sections
 - **Persistent State**: Your collapse/expand preferences are saved and restored when you reopen files
 
@@ -28,7 +28,7 @@ A VSCode extension that adds collapsible sections to the markdown preview, makin
 
 ### Headings
 
-When you collapse a heading, all content up to the next heading of the same or higher level will be hidden.
+When you collapse a heading, all content up to the next heading of the same or higher level will be hidden. Headings inside list items use the list item's folding control.
 
 Example:
 ```markdown
@@ -43,7 +43,9 @@ Clicking the triangle at the start of the "Section 1" heading will hide everythi
 
 ### Lists
 
-Nested lists automatically get collapse/expand controls:
+List items with additional block content get collapse/expand controls. Folding keeps the opening text or block visible and hides subsequent content. Nested items retain their independent collapsed states.
+
+For example:
 
 ```markdown
 - Item 1
@@ -58,7 +60,7 @@ Nested lists automatically get collapse/expand controls:
 
 1. **Install dependencies:**
    ```bash
-   npm install
+   npm ci
    ```
 
 2. **Compile the TypeScript:**
@@ -78,6 +80,7 @@ Nested lists automatically get collapse/expand controls:
    - Click the triangles to collapse/expand individual sections
    - Right-click any triangle to collapse/expand all children or all in document
    - Collapse state is automatically saved and restored
+   - Check hover visibility, keyboard controls, native list markers, and independent nested folding
 
 ### Development Workflow
 
@@ -87,9 +90,22 @@ For active development with auto-recompilation:
 npm run watch
 ```
 
-This will watch for file changes and automatically recompile. After making changes:
+This watches TypeScript files and recompiles the extension host code. The preview JavaScript and CSS are loaded directly. After making changes:
 - In the Extension Development Host window, press `Ctrl/Cmd + R` to reload the window
 - Or use the "Developer: Reload Window" command from the Command Palette
+
+### Automated Checks
+
+For behavior changes, add or update regression tests and run these commands from the repository root:
+
+```bash
+npm test -- --runInBand
+npm run lint
+```
+
+The test command compiles TypeScript via `pretest`, then runs Jest with jsdom. Lint currently checks only TypeScript in `src/`; the preview JavaScript is outside lint coverage.
+
+jsdom does not verify real browser geometry or VS Code preview updates, so use the [Quick Start](#quick-start) steps for manual preview checks. For documentation-only changes, review the diff and check links.
 
 ### Debugging
 
@@ -131,9 +147,32 @@ code --install-extension markdown-outliner-0.1.0.vsix
 ## Known Issues
 
 - The bidirectional sync between editor folding and preview folding is not yet implemented
-- State is stored per-document based on content, so restructuring a document may reset the collapse state
+- Saved state uses content-derived keys, so text changes may reset folds and repeated content can share a saved state
 
 ## Development
+
+### Code Overview
+
+There are two execution environments: the VS Code extension host and the preview webview (a browser page). VS Code renders the Markdown, then the extension adds controls to the resulting page without changing the source document. Most behavior lives in the preview; the host entry point is currently a stub with no registered commands.
+
+| File | Responsibility |
+| --- | --- |
+| [package.json](package.json) | Registers preview scripts/styles and defines build, test, and packaging commands. |
+| [src/extension.ts](src/extension.ts) | Extension host entry point; compiled into the ignored `out/` directory. |
+| [media/outliner.js](media/outliner.js) | Preview initialization, heading/list folding, toggle controls, context menus, and saved state. Loaded directly, without bundling. |
+| [media/outliner.css](media/outliner.css) | Toggle placement, hover/focus visibility, list spacing, hidden content, and menu appearance. |
+| [test/outliner.test.js](test/outliner.test.js) | Jest/jsdom behavior and regression tests using the preview script and stylesheet. |
+| [test-sample.md](test-sample.md) | Manual preview examples, including nested headings, lists, and mixed block content. |
+| [INSTALL.md](INSTALL.md) | Packaging and installation instructions for a local VSIX. |
+| [.github/workflows/](.github/workflows/) | Build/test automation and releases. |
+
+### Preview Initialization and Saved State
+
+Initialization adds controls and restores collapsed state. A `MutationObserver` processes changing preview content. Keep processing safe to repeat without adding duplicate controls.
+
+Collapsed state is stored in `localStorage` under `markdown-outliner-state`. Element keys combine the tag, parent tag, and first 100 characters of text after removing toggles. They contain no explicit document ID.
+
+Keep changes focused, preserve independent nested folding and native list markers, and update this README when the architecture or commands change.
 
 ### CI/CD Pipeline
 
