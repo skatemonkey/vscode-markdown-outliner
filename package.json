@@ -24,11 +24,13 @@
   "contributes": {
     "markdown.previewScripts": [
       "./media/outliner.js",
-      "./media/toc.js"
+      "./media/toc.js",
+      "./media/layout.js"
     ],
     "markdown.previewStyles": [
       "./media/outliner.css",
-      "./media/toc.css"
+      "./media/toc.css",
+      "./media/layout.css"
     ]
   },
   "scripts": {

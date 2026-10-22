@@ -691,6 +691,7 @@
     });
     window.addEventListener('scroll', onLayoutChange, { passive: true });
     window.addEventListener('resize', onWindowResize);
+    window.addEventListener('markdown-outliner.layoutChanged', onLayoutChange);
     window.addEventListener('blur', onWindowBlur);
     window.addEventListener('vscode.markdown.updateContent', onPreviewUpdate);
     document.addEventListener('load', onLayoutChange, true);
@@ -707,6 +708,7 @@
     if (frame !== null) cancelAnimationFrame(frame);
     window.removeEventListener('scroll', onLayoutChange);
     window.removeEventListener('resize', onWindowResize);
+    window.removeEventListener('markdown-outliner.layoutChanged', onLayoutChange);
     window.removeEventListener('blur', onWindowBlur);
     window.removeEventListener('vscode.markdown.updateContent', onPreviewUpdate);
     document.removeEventListener('DOMContentLoaded', init);

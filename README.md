@@ -14,6 +14,7 @@ A VSCode extension that adds collapsible sections to the markdown preview, makin
 - **Collapsible Lists**: Fold content within list items, including nested lists, paragraphs, tables, quotes, and code
 - **Context Menu**: Right-click any triangle icon for options to collapse/expand all sections
 - **Table of Contents**: Hover over the heading rail for a floating outline, or pin it as a right sidebar, with the current section highlighted as you scroll
+- **Adjustable Page Width**: Open the small width control and slide to resize a centered reading column, with your preference remembered
 - **Persistent State**: Your collapse/expand preferences are saved and restored when you reopen files
 
 ## Usage
@@ -71,6 +72,15 @@ The slim rail on the right represents all H1–H6 headings with short lines. Lin
 - Touch users can tap the rail. Use **Tab** to reach it and **Enter** or **Space** to open the outline and focus the current heading. Keyboard focus keeps the outline open until you leave its controls or dismiss it. Navigation respects reduced-motion preferences.
 - Documents without headings hide the TOC entirely.
 
+### Page Width
+
+Click the small **Page width** icon at the top right of the preview to open a compact slider. Slide left for a narrower column or right for a wider one; the document resizes immediately and stays centered. The rightmost position uses the full available width.
+
+- The initial column is 800 px wide. Your chosen width is saved across reloads, independently of the TOC sidebar width.
+- A pinned TOC on a wide preview reserves its own space; the document centers in the remaining area. Narrow previews fit the column to the available space without overwriting your preference. When the page cannot accommodate a column wider than 480 px, the slider is disabled until more space is available.
+- Use **Arrow keys**, **Home**, or **End** while focused on the slider. Press **Escape**, click outside, or click the width icon again to dismiss it. The popover also closes when keyboard focus leaves it.
+- On narrow previews, an open TOC sidebar overlays the page. Close that sidebar to access the width control again. The width control also works on documents without headings.
+
 ## Testing Locally
 
 ### Quick Start
@@ -99,8 +109,11 @@ The slim rail on the right represents all H1–H6 headings with short lines. Lin
    - Collapse state is automatically saved and restored
    - Check hover visibility, keyboard controls, native list markers, and independent nested folding
    - Hover over the heading rail, navigate into a folded section, pin/close the sidebar, and resize the preview
+   - Open the page width control, drag the slider, and check that the column stays centered with and without a pinned TOC; reload to check persistence
 
 ### Development Workflow
+
+Use the existing **[Extension Development Host] test-sample.md** window for troubleshooting and visual verification. Keep using that sample page when checking new features.
 
 For active development with auto-recompilation:
 
@@ -111,6 +124,8 @@ npm run watch
 This watches TypeScript files and recompiles the extension host code. The preview JavaScript and CSS are loaded directly. After making changes:
 - In the Extension Development Host window, press `Ctrl/Cmd + R` to reload the window
 - Or use the "Developer: Reload Window" command from the Command Palette
+
+Changes to preview script/style registrations in `package.json` require this window reload; **Markdown: Refresh Preview** alone does not load the new registrations. Verify the new control in the test-sample preview before reporting it ready.
 
 ### Automated Checks
 
@@ -181,8 +196,11 @@ There are two execution environments: the VS Code extension host and the preview
 | [media/outliner.css](media/outliner.css) | Toggle placement, hover/focus visibility, list spacing, hidden content, and menu appearance. |
 | [media/toc.js](media/toc.js) | Heading discovery, navigation and destination highlighting, scroll tracking, hover/focus handling, on-demand search, and sidebar resizing/persistence. |
 | [media/toc.css](media/toc.css) | Heading rail, floating overlay, resizable sidebar, search field and result styling, destination fade, theme colors, and responsive layout. |
+| [media/layout.js](media/layout.js) | Page width popover, live slider updates, saved width, responsive bounds, and lifecycle cleanup. |
+| [media/layout.css](media/layout.css) | Centered reading column, width control, theme styling, and spacing beside the pinned TOC. |
 | [test/outliner.test.js](test/outliner.test.js) | Jest/jsdom behavior and regression tests using the preview script and stylesheet. |
 | [test/toc.test.js](test/toc.test.js) | TOC interaction, live updates, lifecycle, and integration with folding. |
+| [test/layout.test.js](test/layout.test.js) | Width persistence, responsive limits, control interactions, and integration with folding and the TOC. |
 | [test-sample.md](test-sample.md) | Manual preview examples, including nested headings, lists, and mixed block content. |
 | [INSTALL.md](INSTALL.md) | Packaging and installation instructions for a local VSIX. |
 | [.github/workflows/](.github/workflows/) | Build/test automation and releases. |
@@ -194,6 +212,8 @@ Initialization adds controls and restores collapsed state. A `MutationObserver` 
 Collapsed state is stored in `localStorage` under `markdown-outliner-state`. Element keys combine the tag, parent tag, and first 100 characters of text after removing toggles. They contain no explicit document ID.
 
 The TOC is a separate preview script and stylesheet registered in `package.json`. It calls `window.markdownOutliner.revealHeading(heading)` when navigating; folding state remains owned by the outliner. It has a temporary hover overlay and a persistent sidebar mode, saved as `floating` or `sidebar` under `markdown-outliner-toc-mode`. The preferred sidebar width is saved under `markdown-outliner-toc-width`; viewport changes clamp its displayed size without replacing that preference. Hover and search state are never saved, and the old `markdown-outliner-toc-open` preference is ignored. Search filters the outline only and is reapplied when headings change. Only sidebar mode adds the body class that reserves space on wide previews. Its observer ignores extension controls, and reloading its script disposes the previous instance, listeners, resize gesture, and pending hover timer. Controls marked with `data-outliner-ui` are excluded from folding.
+
+The page layout feature is another independent preview script and stylesheet. It sizes the existing `.markdown-body` without wrapping or moving Markdown nodes. `markdown-outliner-document-width` stores a preferred pixel width or `full`; a smaller preview clamps only the displayed width. CSS accounts for the TOC's existing sidebar class and width variable. The layout script observes body changes to update slider bounds and emits `markdown-outliner.layoutChanged` so the TOC can refresh its active heading after text reflows. Both scripts work in either load order. Reloading the layout script disposes its previous controls and listeners.
 
 Keep changes focused, preserve independent nested folding and native list markers, and update this README when the architecture or commands change.
 

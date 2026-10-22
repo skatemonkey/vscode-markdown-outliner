@@ -1,0 +1,163 @@
+/* Center within the reading area, including when the TOC reserves a column. */
+body.outliner-layout-enabled {
+  --outliner-layout-sidebar-space: 0px;
+}
+
+body.outliner-layout-enabled > .markdown-body {
+  box-sizing: border-box;
+  width: min(var(--outliner-document-width, 800px), max(0px, calc(100% - var(--outliner-layout-sidebar-space))));
+  margin-left: max(0px, calc((100% - var(--outliner-layout-sidebar-space) - var(--outliner-document-width, 800px)) / 2));
+  margin-right: 0;
+}
+
+@media (min-width: 901px) {
+  body.outliner-layout-enabled.outliner-toc-sidebar {
+    --outliner-layout-sidebar-space: var(--outliner-toc-sidebar-width, 288px);
+  }
+}
+
+/* Leave room above the heading rail for the single layout control. */
+.outliner-layout-enabled .outliner-toc:not(.is-sidebar) {
+  top: clamp(56px, 8vh, 72px);
+}
+
+.outliner-layout {
+  --layout-foreground: var(--vscode-editor-foreground, #d4d4d4);
+  --layout-muted: var(--vscode-descriptionForeground, #a0a0a0);
+  --layout-surface: var(--vscode-editor-background, #1e1e1e);
+  --layout-border: var(--vscode-widget-border, color-mix(in srgb, var(--layout-foreground) 12%, transparent));
+  position: fixed;
+  z-index: 110;
+  top: 8px;
+  right: calc(12px + var(--outliner-layout-sidebar-space));
+  color: var(--layout-foreground);
+  font: 13px/1.4 var(--vscode-font-family, system-ui, sans-serif);
+}
+
+.outliner-layout,
+.outliner-layout * {
+  box-sizing: border-box;
+}
+
+.outliner-layout[hidden],
+.outliner-layout [hidden] {
+  display: none !important;
+}
+
+.outliner-layout-button {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--layout-surface);
+  color: var(--layout-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.outliner-layout-button:hover,
+.outliner-layout-button[aria-expanded="true"] {
+  color: var(--layout-foreground);
+  background: var(--vscode-toolbar-hoverBackground, color-mix(in srgb, var(--layout-foreground) 8%, var(--layout-surface)));
+}
+
+.outliner-layout-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 252px;
+  max-width: calc(100vw - 24px - var(--outliner-layout-sidebar-space));
+  padding: 13px 14px 9px;
+  border: 1px solid var(--layout-border);
+  border-radius: 8px;
+  background: var(--layout-surface);
+  box-shadow: 0 4px 20px var(--vscode-widget-shadow, rgb(0 0 0 / 12%));
+}
+
+.outliner-layout-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+
+.outliner-layout-value {
+  color: var(--layout-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.outliner-layout input[type="range"] {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.outliner-layout input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--layout-foreground) 25%, transparent);
+}
+
+.outliner-layout input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border: 2px solid var(--layout-foreground);
+  border-radius: 50%;
+  background: var(--layout-surface);
+}
+
+.outliner-layout input[type="range"]:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.outliner-layout-button:focus-visible,
+.outliner-layout input:focus-visible,
+.outliner-layout-popover:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder, #8b72f8);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .outliner-layout-button,
+  .outliner-layout input[type="range"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .outliner-layout input[type="range"]::-webkit-slider-thumb {
+    width: 17px;
+    height: 17px;
+    margin-top: -7px;
+  }
+  .outliner-layout-enabled .outliner-toc:not(.is-sidebar) {
+    top: clamp(64px, 8vh, 72px);
+  }
+}
+
+@media (forced-colors: active) {
+  .outliner-layout input[type="range"]::-webkit-slider-runnable-track {
+    background: CanvasText;
+  }
+  .outliner-layout input[type="range"]::-webkit-slider-thumb {
+    border-color: ButtonText;
+    background: Canvas;
+  }
+}
