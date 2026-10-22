@@ -61,7 +61,7 @@ The slim rail on the right represents all H1–H6 headings with short lines. Lin
 
 - Click an entry to reveal its section and scroll to it. Navigation expands the selected section and any folded parents, while keeping unrelated sections and nested children folded. The floating outline then returns to the rail.
 - Move the pointer away, click outside, or press **Escape** to dismiss the floating outline. Moving from the rail into the panel keeps it open.
-- The floating outline's only extra control is **Open in Sidebar**, which keeps the outline in a full-height right column. The sidebar stays open during navigation and remembers this choice across reloads. It has one **×** close control and no footer; closing it returns to the rail. **Escape** also works while focused in the sidebar.
+- The small sidebar icon in the top-right corner pins the outline in a full-height right column. Hover or keyboard focus shows **Open in Sidebar**. Once pinned, the same spot shows **×** to close the sidebar and return to the rail. Neither mode has a footer. The sidebar stays open during navigation and remembers this choice across reloads; **Escape** also closes it while focused inside.
 - Only the pinned sidebar reserves reading space on wide previews. On narrow previews it overlays the page so the text keeps its readable width.
 - The list updates as headings change and follows the VS Code theme. Long outlines scroll within the panel, and long titles wrap.
 - Touch users can tap the rail. Use **Tab** to reach it and **Enter** or **Space** to open the outline and focus the current heading. Keyboard focus keeps the outline open until you leave its controls or dismiss it. Navigation respects reduced-motion preferences.

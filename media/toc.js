@@ -8,7 +8,7 @@
   const STORAGE_KEY = 'markdown-outliner-toc-mode';
   const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
   const UI_SELECTOR = '[data-outliner-ui]';
-  let root, panel, navigation, rail, marks, closeButton, footer;
+  let root, panel, navigation, rail, marks, closeButton, sidebarButton;
   let entries = [];
   let activeHeading = null;
   let observer = null;
@@ -100,7 +100,7 @@
     rail.setAttribute('aria-expanded', String(pinned || floatingOpen));
     root.classList.toggle('is-sidebar', pinned);
     closeButton.hidden = !pinned;
-    footer.hidden = pinned;
+    sidebarButton.hidden = pinned;
     // Only an explicit sidebar choice reserves space in the reading column.
     document.body.classList.toggle('outliner-toc-sidebar', pinned && entries.length > 0);
   }
@@ -120,29 +120,24 @@
 
     closeButton = document.createElement('button');
     closeButton.type = 'button';
-    closeButton.className = 'outliner-toc-close';
+    closeButton.className = 'outliner-toc-mode-button outliner-toc-close';
     closeButton.setAttribute('aria-label', 'Close Sidebar');
-    closeButton.title = 'Close sidebar (Escape)';
     closeButton.textContent = '×';
     closeButton.addEventListener('click', () => setPinned(false));
 
     navigation = document.createElement('nav');
     navigation.className = 'outliner-toc-items';
     navigation.setAttribute('aria-label', 'Table of contents');
-    footer = document.createElement('div');
-    footer.className = 'outliner-toc-footer';
-    const sidebarButton = document.createElement('button');
+    sidebarButton = document.createElement('button');
     sidebarButton.type = 'button';
-    sidebarButton.className = 'outliner-toc-sidebar-button';
+    sidebarButton.className = 'outliner-toc-mode-button outliner-toc-sidebar-button';
+    sidebarButton.setAttribute('aria-label', 'Open in Sidebar');
     const icon = document.createElement('span');
     icon.className = 'outliner-toc-sidebar-icon';
     icon.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span');
-    label.textContent = 'Open in Sidebar';
-    sidebarButton.append(icon, label);
+    sidebarButton.appendChild(icon);
     sidebarButton.addEventListener('click', () => setPinned(true));
-    footer.appendChild(sidebarButton);
-    panel.append(closeButton, navigation, footer);
+    panel.append(closeButton, sidebarButton, navigation);
 
     rail = document.createElement('button');
     rail.type = 'button';

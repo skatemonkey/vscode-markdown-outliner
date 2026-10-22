@@ -253,7 +253,7 @@ Try the table of contents:
 - Hover over the short heading lines on the right. The full outline should appear without changing the document's position, width, or scroll position.
 - Move across into the outline, then click a heading to jump to its section and return to the rail. Moving away, clicking outside, or pressing Escape should also dismiss it.
 - Collapse a parent heading or list item, then navigate to a heading inside it. The required folds should open while unrelated sections stay collapsed.
-- Choose **Open in Sidebar**. The outline should become a full-height right column and stay open during navigation. Its footer should disappear, leaving just **×** to return to the rail. The hover outline should have no close button.
+- Hover or keyboard-focus the sidebar icon in the top-right corner to see **Open in Sidebar**, then activate it. The outline should become a full-height right column and stay open during navigation. The same corner should now show **×** to return to the rail. Neither mode should have a footer.
 - Resize the preview to a narrow pane. Both modes should fit; the sidebar should overlay the page instead of squeezing the reading column.
 - Rename a heading and confirm both its outline entry and rail mark update. Reload with the sidebar pinned, then close it and reload again to check the saved mode.
 

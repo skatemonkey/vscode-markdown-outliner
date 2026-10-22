@@ -108,6 +108,7 @@ test('the rail opens with keyboard focus and Escape returns to the rail without 
   expect(document.activeElement).toBe(items()[0]);
   expect(closeButton().hidden).toBe(true);
   expect(sidebarButton().closest('[hidden]')).toBeNull();
+  expect(sidebarButton().getAttribute('aria-label')).toBe('Open in Sidebar');
   items()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   expect(panel().hidden).toBe(true);
   expect(document.activeElement).toBe(rail());
@@ -152,7 +153,8 @@ test('the sidebar remains open for navigation, pointer exit and reload, until ex
   expect(localStorage.getItem('markdown-outliner-toc-mode')).toBe('sidebar');
   setup('<h1>Title</h1>');
   expect(panel().hidden).toBe(false);
-  expect(sidebarButton().closest('.outliner-toc-footer').hidden).toBe(true);
+  expect(sidebarButton().hidden).toBe(true);
+  expect(panel().querySelector('.outliner-toc-footer')).toBeNull();
   expect(closeButton().hidden).toBe(false);
   closeButton().click();
   expect(panel().hidden).toBe(true);

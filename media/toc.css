@@ -85,7 +85,7 @@
   box-shadow: 0 4px 20px var(--vscode-widget-shadow, rgb(0 0 0 / 12%));
 }
 
-.outliner-toc .outliner-toc-close {
+.outliner-toc .outliner-toc-mode-button {
   position: absolute;
   z-index: 1;
   top: 12px;
@@ -101,6 +101,31 @@
   line-height: 1;
 }
 
+/* Show the icon's label for pointer and keyboard users, within the panel bounds. */
+.outliner-toc-mode-button::after {
+  content: attr(aria-label);
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 6px);
+  transform: translateY(-50%);
+  padding: 5px 8px;
+  border: 1px solid var(--toc-border);
+  border-radius: 4px;
+  background: var(--vscode-editorHoverWidget-background, var(--toc-surface));
+  color: var(--toc-foreground);
+  box-shadow: 0 2px 6px var(--vscode-widget-shadow, rgb(0 0 0 / 12%));
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.outliner-toc-mode-button:hover::after,
+.outliner-toc-mode-button:focus-visible::after {
+  display: block;
+}
+
 .outliner-toc-items {
   flex: 1;
   min-height: 0;
@@ -108,12 +133,8 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
-  padding: 10px;
-}
-
-/* Only the pinned sidebar has a close control to reserve space for. */
-.outliner-toc.is-sidebar .outliner-toc-items {
-  padding-right: 38px;
+  /* Keep titles clear of the single action in the top-right corner. */
+  padding: 10px 38px 10px 10px;
 }
 
 .outliner-toc-panel:hover .outliner-toc-items,
@@ -134,33 +155,13 @@
 }
 
 .outliner-toc .outliner-toc-item:hover,
-.outliner-toc .outliner-toc-close:hover,
-.outliner-toc .outliner-toc-sidebar-button:hover {
+.outliner-toc .outliner-toc-mode-button:hover {
   color: var(--toc-foreground);
   background: color-mix(in srgb, var(--toc-foreground) 6%, transparent);
 }
 
 .outliner-toc .outliner-toc-item[aria-current] {
   color: var(--toc-accent);
-}
-
-.outliner-toc-footer {
-  flex: none;
-  padding: 6px;
-  border-top: 1px solid var(--toc-border);
-}
-
-.outliner-toc .outliner-toc-sidebar-button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  min-height: 32px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  color: var(--toc-muted);
-  font-size: 12px;
-  text-align: start;
 }
 
 .outliner-toc-sidebar-icon {
@@ -215,15 +216,14 @@
 
 @media (pointer: coarse) {
   .outliner-toc .outliner-toc-item,
-  .outliner-toc .outliner-toc-close,
-  .outliner-toc .outliner-toc-sidebar-button {
+  .outliner-toc .outliner-toc-mode-button {
     min-height: 44px;
   }
-  .outliner-toc .outliner-toc-close,
+  .outliner-toc .outliner-toc-mode-button,
   .outliner-toc .outliner-toc-rail {
     min-width: 44px;
   }
-  .outliner-toc .outliner-toc-close {
+  .outliner-toc .outliner-toc-mode-button {
     top: 10px;
   }
   .outliner-toc-panel {
@@ -231,8 +231,6 @@
   }
   .outliner-toc-items {
     scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
-  }
-  .outliner-toc.is-sidebar .outliner-toc-items {
     padding-right: 58px;
   }
 }
