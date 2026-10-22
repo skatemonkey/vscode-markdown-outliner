@@ -8,7 +8,7 @@
   const MIN_WIDTH = 480;
   const WIDTH_PROPERTY = '--outliner-document-width';
   let preferredWidth = readWidth();
-  let root, button, popover, slider, value, observer;
+  let root, button, popover, slider, value, blocksButton, blocksIcon, observer;
   let started = false;
   let disposed = false;
   let frame = null;
@@ -65,6 +65,18 @@
     } catch (_) { /* Keep this session's choice when storage is unavailable. */ }
   }
 
+  function updateBlocksButton() {
+    if (!blocksButton) return;
+    const state = window.markdownOutlinerBlocks?.getState();
+    const label = state?.expanded ? 'Restore all' : 'Expand all';
+    if (blocksButton.getAttribute('aria-label') !== label) blocksButton.setAttribute('aria-label', label);
+    blocksButton.disabled = !state?.available && !state?.expanded;
+    blocksButton.title = blocksButton.disabled ? 'No tables or flow layouts in this document' :
+      state?.expanded ? 'Restore all tables and flows to the page width' : 'Expand all wide tables and flows';
+    const path = state?.expanded ? 'M3 7h4V3M17 7h-4V3M7 17v-4H3M13 17v-4h4' : 'M7 3H3v4M13 3h4v4M3 13v4h4M17 13v4h-4';
+    if (blocksIcon.getAttribute('d') !== path) blocksIcon.setAttribute('d', path);
+  }
+
   function closePopover(restoreFocus = false) {
     if (!popover || popover.hidden) return;
     popover.hidden = true;
@@ -78,6 +90,7 @@
       return;
     }
     applyWidth();
+    updateBlocksButton();
     popover.hidden = false;
     button.setAttribute('aria-expanded', 'true');
     (slider.disabled ? popover : slider).focus({ preventScroll: true });
@@ -119,8 +132,19 @@
     slider.type = 'range';
     slider.step = '1';
     slider.addEventListener('input', onInput);
+    blocksButton = document.createElement('button');
+    blocksButton.type = 'button';
+    blocksButton.className = 'outliner-layout-blocks';
+    blocksButton.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path/></svg>';
+    blocksIcon = blocksButton.querySelector('path');
+    blocksButton.addEventListener('click', () => {
+      closePopover();
+      const blocks = window.markdownOutlinerBlocks;
+      blocks?.setExpanded(!blocks.getState().expanded);
+    });
     popover.append(header, slider);
-    root.append(button, popover);
+    updateBlocksButton();
+    root.append(button, blocksButton, popover);
     root.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !event.isComposing && !popover.hidden) {
         event.preventDefault();
@@ -129,7 +153,7 @@
       }
     });
     root.addEventListener('focusout', event => {
-      if (!root.contains(event.relatedTarget)) closePopover();
+      if (!root.contains(event.relatedTarget) || event.relatedTarget === blocksButton) closePopover();
     });
     // Controls must not trigger VS Code's preview click-to-editor behavior.
     root.addEventListener('click', event => event.stopPropagation());
@@ -170,6 +194,7 @@
     window.addEventListener('resize', schedule);
     window.addEventListener('blur', onWindowBlur);
     window.addEventListener('vscode.markdown.updateContent', schedule);
+    window.addEventListener('markdown-outliner.blocksChanged', updateBlocksButton);
     document.addEventListener('pointerdown', onOutsidePointerDown);
   }
 
@@ -180,6 +205,7 @@
     window.removeEventListener('resize', schedule);
     window.removeEventListener('blur', onWindowBlur);
     window.removeEventListener('vscode.markdown.updateContent', schedule);
+    window.removeEventListener('markdown-outliner.blocksChanged', updateBlocksButton);
     document.removeEventListener('DOMContentLoaded', init);
     document.removeEventListener('pointerdown', onOutsidePointerDown);
     root?.remove();

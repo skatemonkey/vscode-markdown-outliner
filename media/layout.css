@@ -1,6 +1,7 @@
 /* Center within the reading area, including when the TOC reserves a column. */
 body.outliner-layout-enabled {
   --outliner-layout-sidebar-space: 0px;
+  --outliner-layout-control-size: 32px;
 }
 
 body.outliner-layout-enabled > .markdown-body {
@@ -16,9 +17,11 @@ body.outliner-layout-enabled > .markdown-body {
   }
 }
 
-/* Leave room above the heading rail for the single layout control. */
+/* Leave room for both layout icons, including in short and touch previews. */
 .outliner-layout-enabled .outliner-toc:not(.is-sidebar) {
-  top: clamp(56px, 8vh, 72px);
+  top: calc(var(--outliner-layout-control-size) * 2 + 28px);
+  --toc-max-height: min(72vh, 600px, calc(100vh - var(--outliner-layout-control-size) * 2 - 56px));
+  --toc-max-height: min(72dvh, 600px, calc(100dvh - var(--outliner-layout-control-size) * 2 - 56px));
 }
 
 .outliner-layout {
@@ -30,6 +33,9 @@ body.outliner-layout-enabled > .markdown-body {
   z-index: 110;
   top: 8px;
   right: calc(12px + var(--outliner-layout-sidebar-space));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   color: var(--layout-foreground);
   font: 13px/1.4 var(--vscode-font-family, system-ui, sans-serif);
 }
@@ -44,12 +50,13 @@ body.outliner-layout-enabled > .markdown-body {
   display: none !important;
 }
 
-.outliner-layout-button {
+.outliner-layout-button,
+.outliner-layout-blocks {
   appearance: none;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: var(--outliner-layout-control-size);
+  height: var(--outliner-layout-control-size);
   padding: 0;
   margin: 0;
   border: 0;
@@ -61,6 +68,7 @@ body.outliner-layout-enabled > .markdown-body {
 }
 
 .outliner-layout-button:hover,
+.outliner-layout-blocks:hover:not(:disabled),
 .outliner-layout-button[aria-expanded="true"] {
   color: var(--layout-foreground);
   background: var(--vscode-toolbar-hoverBackground, color-mix(in srgb, var(--layout-foreground) 8%, var(--layout-surface)));
@@ -68,10 +76,10 @@ body.outliner-layout-enabled > .markdown-body {
 
 .outliner-layout-popover {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  top: 0;
+  right: calc(100% + 8px);
   width: 252px;
-  max-width: calc(100vw - 24px - var(--outliner-layout-sidebar-space));
+  max-width: calc(100vw - 32px - var(--outliner-layout-control-size) - var(--outliner-layout-sidebar-space));
   padding: 13px 14px 9px;
   border: 1px solid var(--layout-border);
   border-radius: 8px;
@@ -91,6 +99,11 @@ body.outliner-layout-enabled > .markdown-body {
   color: var(--layout-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+.outliner-layout-blocks:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .outliner-layout input[type="range"] {
@@ -130,6 +143,7 @@ body.outliner-layout-enabled > .markdown-body {
 }
 
 .outliner-layout-button:focus-visible,
+.outliner-layout-blocks:focus-visible,
 .outliner-layout input:focus-visible,
 .outliner-layout-popover:focus-visible {
   outline: 2px solid var(--vscode-focusBorder, #8b72f8);
@@ -137,7 +151,9 @@ body.outliner-layout-enabled > .markdown-body {
 }
 
 @media (pointer: coarse) {
-  .outliner-layout-button,
+  body.outliner-layout-enabled {
+    --outliner-layout-control-size: 44px;
+  }
   .outliner-layout input[type="range"] {
     min-width: 44px;
     min-height: 44px;
@@ -146,9 +162,6 @@ body.outliner-layout-enabled > .markdown-body {
     width: 17px;
     height: 17px;
     margin-top: -7px;
-  }
-  .outliner-layout-enabled .outliner-toc:not(.is-sidebar) {
-    top: clamp(64px, 8vh, 72px);
   }
 }
 

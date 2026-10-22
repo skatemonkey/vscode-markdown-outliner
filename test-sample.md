@@ -2,6 +2,34 @@
 
 This is a test document to demonstrate the collapsible sections feature. Hover this H1 title to reveal its toggle in the left margin.
 
+## Wide blocks
+
+Click the **Expand all** icon directly below the **Page width** icon, without opening the slider. Wide tables and flows should use the available reading area while this paragraph keeps its width. Click **Restore all** to return them to the reading column. Try a narrow page width and a pinned TOC sidebar.
+
+<div id="wide-flow" style="overflow-x: auto;">
+<table style="min-width: 1200px; width: 100%;">
+<thead><tr><th>1. Explore</th><th>2. Plan</th><th>3. Build</th><th>4. Review</th><th>5. Release</th></tr></thead>
+<tbody><tr>
+<td style="width: 20%; vertical-align: top;"><p>Understand the problem.</p><ul><li>Gather examples</li><li>Map the current workflow</li><li>Identify constraints</li></ul></td>
+<td style="width: 20%; vertical-align: top;"><p>Choose a clear direction.</p><ul><li>Define the smallest useful change</li><li>Agree on the expected behavior</li><li>Keep the interface simple</li></ul></td>
+<td style="width: 20%; vertical-align: top;"><p>Make the change.</p><ul><li>Keep related code together</li><li>Preserve existing behavior</li><li>Check keyboard and touch input</li></ul></td>
+<td style="width: 20%; vertical-align: top;"><p>Try it in context.</p><ul><li>Check narrow and wide previews</li><li>Test folding and navigation</li><li>Review the visual details</li></ul></td>
+<td style="width: 20%; vertical-align: top;"><p>Make it available.</p><ul><li>Package the extension</li><li>Install the current build</li><li>Verify it in the preview</li></ul></td>
+</tr></tbody>
+</table>
+</div>
+
+This paragraph stays centered at the same width when the flow expands. If the flow still does not fit, scroll **inside it** to reach the last column.
+
+### Another wide table
+
+Both examples should expand and restore together. Fold this subsection, click **Expand all**, then reopen it: this table should also expand. There should be no individual expand buttons on the page.
+
+<table id="wide-table">
+<thead><tr><th style="min-width: 240px;">Input</th><th style="min-width: 240px;">Validation</th><th style="min-width: 240px;">Processing</th><th style="min-width: 240px;">Output</th><th style="min-width: 240px;">Follow-up</th></tr></thead>
+<tbody><tr><td>Collect the request</td><td>Check the required details</td><td>Complete the work</td><td>Deliver the result</td><td>Review the outcome</td></tr></tbody>
+</table>
+
 ## Section 1: Introduction
 
 This section contains some introductory text. You should be able to collapse this entire section by clicking the triangle next to "Section 1: Introduction".

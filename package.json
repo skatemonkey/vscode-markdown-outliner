@@ -25,12 +25,14 @@
     "markdown.previewScripts": [
       "./media/outliner.js",
       "./media/toc.js",
-      "./media/layout.js"
+      "./media/layout.js",
+      "./media/blocks.js"
     ],
     "markdown.previewStyles": [
       "./media/outliner.css",
       "./media/toc.css",
-      "./media/layout.css"
+      "./media/layout.css",
+      "./media/blocks.css"
     ]
   },
   "scripts": {

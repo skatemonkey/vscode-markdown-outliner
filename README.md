@@ -15,6 +15,7 @@ A VSCode extension that adds collapsible sections to the markdown preview, makin
 - **Context Menu**: Right-click any triangle icon for options to collapse/expand all sections
 - **Table of Contents**: Hover over the heading rail for a floating outline, or pin it as a right sidebar, with the current section highlighted as you scroll
 - **Adjustable Page Width**: Open the small width control and slide to resize a centered reading column, with your preference remembered
+- **Expand Wide Tables**: Expand or restore wide tables and flow layouts together with the icon below Page width
 - **Persistent State**: Your collapse/expand preferences are saved and restored when you reopen files
 
 ## Usage
@@ -81,6 +82,15 @@ Click the small **Page width** icon at the top right of the preview to open a co
 - Use **Arrow keys**, **Home**, or **End** while focused on the slider. Press **Escape**, click outside, or click the width icon again to dismiss it. The popover also closes when keyboard focus leaves it.
 - On narrow previews, an open TOC sidebar overlays the page. Close that sidebar to access the width control again. The width control also works on documents without headings.
 
+### Expand Wide Tables and Flows
+
+Click the small **Expand all** icon directly below the **Page width** icon at the top right of the preview. It works without opening the width slider. Wide tables and horizontally scrolling table/flex/grid flows use the full available reading area. The icon changes to **Restore all**, which returns them to the reading column. Hover for its label. There are no individual expand buttons on the document.
+
+- Compact tables, normal text, and code blocks keep their widths. If a table or flow is still too wide after expansion, scroll horizontally inside it.
+- A pinned TOC keeps its reserved space. Expanded blocks adapt when the page width, sidebar width, or preview size changes.
+- Tab from the Page width icon to the expand icon and press **Enter** or **Space**. Touch devices get a larger tap target. The button is disabled on documents without tables or flows.
+- Expansion applies to the current preview, including tables revealed by folding or added during live edits. Reloading the preview resets it. Your saved page width is independent.
+
 ## Testing Locally
 
 ### Quick Start
@@ -110,6 +120,7 @@ Click the small **Page width** icon at the top right of the preview to open a co
    - Check hover visibility, keyboard controls, native list markers, and independent nested folding
    - Hover over the heading rail, navigate into a folded section, pin/close the sidebar, and resize the preview
    - Open the page width control, drag the slider, and check that the column stays centered with and without a pinned TOC; reload to check persistence
+   - In **Wide blocks**, use the **Expand all / Restore all** icon directly below the Page width icon. Check both examples, local scrolling, keyboard/touch controls, folding, and the pinned TOC; surrounding text and code should keep their widths
 
 ### Development Workflow
 
@@ -196,11 +207,14 @@ There are two execution environments: the VS Code extension host and the preview
 | [media/outliner.css](media/outliner.css) | Toggle placement, hover/focus visibility, list spacing, hidden content, and menu appearance. |
 | [media/toc.js](media/toc.js) | Heading discovery, navigation and destination highlighting, scroll tracking, hover/focus handling, on-demand search, and sidebar resizing/persistence. |
 | [media/toc.css](media/toc.css) | Heading rail, floating overlay, resizable sidebar, search field and result styling, destination fade, theme colors, and responsive layout. |
-| [media/layout.js](media/layout.js) | Page width popover, live slider updates, saved width, responsive bounds, and lifecycle cleanup. |
+| [media/layout.js](media/layout.js) | Page width popover, live slider updates, saved width, shared expand/restore button, and lifecycle cleanup. |
 | [media/layout.css](media/layout.css) | Centered reading column, width control, theme styling, and spacing beside the pinned TOC. |
+| [media/blocks.js](media/blocks.js) | Table/flow discovery, shared expansion state, responsive bounds, and preview lifecycle cleanup. |
+| [media/blocks.css](media/blocks.css) | Local table/flow scrolling and expansion geometry. |
 | [test/outliner.test.js](test/outliner.test.js) | Jest/jsdom behavior and regression tests using the preview script and stylesheet. |
 | [test/toc.test.js](test/toc.test.js) | TOC interaction, live updates, lifecycle, and integration with folding. |
 | [test/layout.test.js](test/layout.test.js) | Width persistence, responsive limits, control interactions, and integration with folding and the TOC. |
+| [test/blocks.test.js](test/blocks.test.js) | Shared expansion control, code exclusion, source-node preservation, folding, and live preview updates. |
 | [test-sample.md](test-sample.md) | Manual preview examples, including nested headings, lists, and mixed block content. |
 | [INSTALL.md](INSTALL.md) | Packaging and installation instructions for a local VSIX. |
 | [.github/workflows/](.github/workflows/) | Build/test automation and releases. |
@@ -214,6 +228,8 @@ Collapsed state is stored in `localStorage` under `markdown-outliner-state`. Ele
 The TOC is a separate preview script and stylesheet registered in `package.json`. It calls `window.markdownOutliner.revealHeading(heading)` when navigating; folding state remains owned by the outliner. It has a temporary hover overlay and a persistent sidebar mode, saved as `floating` or `sidebar` under `markdown-outliner-toc-mode`. The preferred sidebar width is saved under `markdown-outliner-toc-width`; viewport changes clamp its displayed size without replacing that preference. Hover and search state are never saved, and the old `markdown-outliner-toc-open` preference is ignored. Search filters the outline only and is reapplied when headings change. Only sidebar mode adds the body class that reserves space on wide previews. Its observer ignores extension controls, and reloading its script disposes the previous instance, listeners, resize gesture, and pending hover timer. Controls marked with `data-outliner-ui` are excluded from folding.
 
 The page layout feature is another independent preview script and stylesheet. It sizes the existing `.markdown-body` without wrapping or moving Markdown nodes. `markdown-outliner-document-width` stores a preferred pixel width or `full`; a smaller preview clamps only the displayed width. CSS accounts for the TOC's existing sidebar class and width variable. The layout script observes body changes to update slider bounds and emits `markdown-outliner.layoutChanged` so the TOC can refresh its active heading after text reflows. Both scripts work in either load order. Reloading the layout script disposes its previous controls and listeners.
+
+Table/flow expansion lives in its own script and stylesheet, without wrapping or moving source nodes or adding controls inside the document. An outer scrolling flow owns its nested tables. The layout toolbar calls `markdownOutlinerBlocks.setExpanded()` and listens for `markdown-outliner.blocksChanged` to update its single expand/restore icon. Resize/content observers and layout events keep widths aligned with the body's reading area and TOC reservation. Both scripts work in either load order. The mode survives live content updates, applies when folded tables are revealed, and resets when the blocks script reloads. Disposal restores temporary styles and removes listeners and observers. Code blocks are not expansion targets.
 
 Keep changes focused, preserve independent nested folding and native list markers, and update this README when the architecture or commands change.
 

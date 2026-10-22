@@ -1,0 +1,27 @@
+/* Keep wide tables and flow layouts scrollable within the reading column. */
+.markdown-body .outliner-block {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-body table.outliner-block {
+  display: block;
+}
+
+.markdown-body .outliner-block-expanded {
+  width: var(--outliner-block-width) !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin-left: var(--outliner-block-offset) !important;
+  margin-right: 0 !important;
+}
+
+@media print {
+  .markdown-body .outliner-block-expanded {
+    width: auto !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
