@@ -670,3 +670,105 @@ test('width changes and search remain usable when browser storage is unavailable
   expect(window.scrollTo).toHaveBeenCalledTimes(1);
   expect(panel().hidden).toBe(false);
 });
+
+test('search marks literal matches safely and preserves original Unicode text', () => {
+  setup('<h1>🧭 C++ [setup] .* Café CAFÉ İstanbul</h1><h2>&lt;img src=x onerror=alert(1)&gt;</h2>');
+  const original = document.querySelector('.markdown-body').innerHTML;
+  rail().click();
+  press('/');
+  filter('c++ [se .*');
+  expect(visibleItems()).toHaveLength(1);
+  expect(Array.from(visibleItems()[0].querySelectorAll('mark'), mark => mark.textContent)).toEqual(['C++', '[se', '.*']);
+  expect(visibleItems()[0].textContent).toBe('🧭 C++ [setup] .* Café CAFÉ İstanbul');
+  filter('café');
+  expect(Array.from(visibleItems()[0].querySelectorAll('mark'), mark => mark.textContent)).toEqual(['Café', 'CAFÉ']);
+  filter('İstanbul');
+  expect(visibleItems()[0].querySelector('mark').textContent).toBe('İstanbul');
+  filter('<img');
+  expect(visibleItems()[0].querySelector('mark').textContent).toBe('<img');
+  expect(document.querySelector('.outliner-toc img')).toBeNull();
+  expect(document.querySelector('.markdown-body').innerHTML).toBe(original);
+  expect(document.activeElement).toBe(searchInput());
+});
+
+test('overlapping and repeated query words produce readable marks without duplicating text', () => {
+  setup('<h1>Configure configuration</h1>');
+  rail().click();
+  press('/');
+  filter('con config CON');
+  expect(items()[0].textContent).toBe('Configure configuration');
+  expect(Array.from(items()[0].querySelectorAll('mark'), mark => mark.textContent)).toEqual(['Config', 'config']);
+  expect(items()[0].querySelector('mark mark')).toBeNull();
+  expect(items()[0].getAttribute('aria-label')).toBe('Configure configuration');
+});
+
+test('only duplicate search results show parent context, and clearing search restores the plain outline', () => {
+  setup('<h1>Handbook</h1><h2>Linux</h2><h3>Setup</h3><h2>Windows</h2><h3>Setup</h3><h2>Setup guide</h2>');
+  rail().click();
+  press('/');
+  expect(document.querySelector('.outliner-toc-context')).toBeNull();
+  filter('setup');
+  expect(visibleItems().map(item => item.getAttribute('aria-label'))).toEqual(['Setup, Linux', 'Setup, Windows', 'Setup guide']);
+  expect(Array.from(document.querySelectorAll('.outliner-toc-context'), item => item.textContent)).toEqual(['Linux', 'Windows']);
+  expect(visibleItems()[2].querySelector('.outliner-toc-context')).toBeNull();
+  expect(visibleItems()[0].title).toBe('Setup\nLinux');
+  filter('');
+  expect(document.querySelector('.outliner-toc-context')).toBeNull();
+  expect(document.querySelector('.outliner-toc-match')).toBeNull();
+  expect(items()[2].textContent).toBe('Setup');
+  expect(items()[2].getAttribute('aria-label')).toBe('Setup');
+  expect(items()[2].title).toBe('Setup');
+});
+
+test('ambiguous parents use ancestor paths and repeated siblings or root titles use occurrence numbers', () => {
+  setup(`
+    <h1>Alpha</h1><h2>Shared</h2><h4>Configuration</h4><h4>Configuration</h4>
+    <h1>Beta</h1><h3>Shared</h3><h6>configuration</h6>
+    <h1>Configuration</h1><h1>Configuration</h1>
+  `);
+  rail().click();
+  press('/');
+  filter('configuration');
+  expect(visibleItems().map(item => item.querySelector('.outliner-toc-context').textContent)).toEqual([
+    'Alpha › Shared · 1 of 2', 'Alpha › Shared · 2 of 2', 'Beta › Shared', 'Top level · 1 of 2', 'Top level · 2 of 2'
+  ]);
+});
+
+test('selecting a duplicate result reveals its own folded branch and restores its normal label', () => {
+  setup('<h1 id="linux">Linux</h1><h2 id="first">Setup</h2><p>Linux setup</p><h1 id="windows">Windows</h1><h2 id="second">Setup</h2><p>Windows setup</p>');
+  window.markdownOutliner.collapseAll();
+  sidebarButton().click();
+  press('/');
+  filter('setup');
+  press('ArrowDown');
+  press('ArrowDown');
+  expect(document.activeElement.getAttribute('aria-label')).toBe('Setup, Windows');
+  document.activeElement.click();
+  expect(document.getElementById('second').closest('.outliner-hidden')).toBeNull();
+  expect(document.getElementById('windows').classList.contains('collapsed')).toBe(false);
+  expect(document.getElementById('linux').classList.contains('collapsed')).toBe(true);
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 516, behavior: 'smooth' });
+  expect(document.activeElement).toBe(items()[3]);
+  expect(document.activeElement.getAttribute('aria-label')).toBe('Setup');
+  expect(document.querySelector('.outliner-toc-context')).toBeNull();
+  expect(document.querySelector('.outliner-toc-match')).toBeNull();
+});
+
+test('editing parents and removing duplicate headings refreshes context without losing the query or focus', async () => {
+  setup('<h1 id="linux">Linux</h1><h2 id="first">Setup</h2><h1>Windows</h1><h2 id="second">Setup</h2>');
+  rail().click();
+  press('/');
+  filter('setup');
+  document.getElementById('linux').lastChild.textContent = 'Unix';
+  await flushUpdates();
+  expect(visibleItems()[0].getAttribute('aria-label')).toBe('Setup, Unix');
+  expect(document.activeElement).toBe(searchInput());
+  document.getElementById('second').remove();
+  await flushUpdates();
+  expect(visibleItems()).toHaveLength(1);
+  expect(visibleItems()[0].getAttribute('aria-label')).toBe('Setup');
+  expect(visibleItems()[0].querySelector('.outliner-toc-context')).toBeNull();
+  expect(visibleItems()[0].querySelector('mark').textContent).toBe('Setup');
+  expect(searchInput().value).toBe('setup');
+  expect(document.activeElement).toBe(searchInput());
+});

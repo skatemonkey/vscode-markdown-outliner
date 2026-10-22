@@ -156,10 +156,92 @@
     return entries.filter(entry => !entry.button.hidden);
   }
 
+  function searchContexts(headings) {
+    const ancestors = [];
+    const groups = new Map();
+    const contexts = new Map();
+    for (const entry of headings) {
+      while (ancestors.length && ancestors[ancestors.length - 1].level >= entry.level) ancestors.pop();
+      const key = entry.label.toLowerCase();
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ ...entry, parents: ancestors.map(parent => parent.label) });
+      ancestors.push(entry);
+    }
+    const parentPath = (entry, depth) => entry.parents.slice(-depth).join(' › ') || 'Top level';
+    for (const group of groups.values()) {
+      if (group.length < 2) continue;
+      const sharedContexts = new Map();
+      for (const entry of group) {
+        let depth = 1;
+        // Usually the immediate parent suffices. Expand the path only for ambiguity.
+        while (depth < entry.parents.length && group.some(other => other !== entry &&
+            parentPath(other, depth).toLowerCase() === parentPath(entry, depth).toLowerCase())) depth++;
+        const context = parentPath(entry, depth);
+        contexts.set(entry.heading, context);
+        const key = context.toLowerCase();
+        if (!sharedContexts.has(key)) sharedContexts.set(key, []);
+        sharedContexts.get(key).push(entry);
+      }
+      // Repeated siblings or top-level titles have no distinct ancestor to name.
+      for (const siblings of sharedContexts.values()) {
+        if (siblings.length < 2) continue;
+        siblings.forEach((entry, index) => {
+          contexts.set(entry.heading, `${contexts.get(entry.heading)} · ${index + 1} of ${siblings.length}`);
+        });
+      }
+    }
+    return contexts;
+  }
+
+  function searchRanges(label, patterns) {
+    const ranges = [];
+    for (const pattern of patterns) {
+      const matches = Array.from(label.matchAll(pattern));
+      if (!matches.length) return null;
+      matches.forEach(match => ranges.push({ start: match.index, end: match.index + match[0].length }));
+    }
+    ranges.sort((a, b) => a.start - b.start || b.end - a.end);
+    const merged = [];
+    for (const range of ranges) {
+      const previous = merged[merged.length - 1];
+      if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+      else merged.push(range);
+    }
+    return merged;
+  }
+
+  function renderSearchEntry(entry, ranges, context) {
+    const fragment = document.createDocumentFragment();
+    let offset = 0;
+    for (const { start, end } of ranges || []) {
+      fragment.append(entry.label.slice(offset, start));
+      const match = document.createElement('mark');
+      match.className = 'outliner-toc-match';
+      match.textContent = entry.label.slice(start, end);
+      fragment.appendChild(match);
+      offset = end;
+    }
+    fragment.append(entry.label.slice(offset));
+    if (context) {
+      const parent = document.createElement('span');
+      parent.className = 'outliner-toc-context';
+      parent.textContent = context;
+      fragment.appendChild(parent);
+    }
+    // Plain text nodes keep Markdown labels and queries from becoming HTML.
+    entry.button.replaceChildren(fragment);
+    entry.button.setAttribute('aria-label', context ? `${entry.label}, ${context}` : entry.label);
+    entry.button.title = context ? `${entry.label}\n${context}` : entry.label;
+  }
+
   function filterEntries(resetScroll = false) {
-    const words = searchOpen ? searchInput.value.trim().toLowerCase().split(/\s+/).filter(Boolean) : [];
+    const words = searchOpen ? searchInput.value.trim().split(/\s+/).filter(Boolean) : [];
+    const patterns = [...new Set(words)].map(word =>
+      new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu'));
     entries.forEach(entry => {
-      entry.button.hidden = !words.every(word => entry.label.toLowerCase().includes(word));
+      const ranges = searchRanges(entry.label, patterns);
+      entry.button.hidden = ranges === null;
+      renderSearchEntry(entry, ranges, ranges?.length ? entry.context : '');
     });
     emptyResults.hidden = !searchOpen || visibleEntries().length > 0;
     if (resetScroll) navigation.scrollTop = 0;
@@ -430,6 +512,7 @@
       const baseLevel = next.reduce((level, entry) => Math.min(level, entry.level), 6);
       const fragment = document.createDocumentFragment();
       const railFragment = document.createDocumentFragment();
+      const contexts = searchContexts(next);
       entries = next.map(entry => {
         const button = document.createElement('button');
         button.type = 'button';
@@ -443,7 +526,7 @@
         mark.className = 'outliner-toc-mark';
         mark.style.setProperty('--toc-depth', String(entry.level - baseLevel));
         railFragment.appendChild(mark);
-        return { ...entry, button, mark };
+        return { ...entry, button, mark, context: contexts.get(entry.heading) || '' };
       });
       navigation.replaceChildren(fragment, emptyResults);
       marks.replaceChildren(railFragment);

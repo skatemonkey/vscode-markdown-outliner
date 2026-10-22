@@ -213,6 +213,23 @@
   color: var(--toc-accent);
 }
 
+.outliner-toc-match {
+  padding: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--toc-accent) 16%, transparent);
+  color: inherit;
+  font-weight: 600;
+}
+
+.outliner-toc-context {
+  display: block;
+  margin-top: 2px;
+  color: var(--toc-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .outliner-toc-sidebar-icon {
   position: relative;
   flex: none;

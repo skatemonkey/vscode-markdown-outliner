@@ -259,6 +259,7 @@ Try the table of contents:
 - Drag the sidebar's left edge wider and narrower, then reload to check the saved width. Shrink and expand the preview to confirm the preferred width returns. Tab to the edge and try Left/Right, Shift+Left/Right, and Home/End; Escape should cancel a drag.
 - With focus in the outline, press `/` and type `section 5`. Only matching headings should appear; the document and rail should stay unchanged. Try Up/Down and Enter to navigate, an unmatched query, and Escape to dismiss search before dismissing the outline. The field should not appear until requested.
 - Keep a query open while editing a heading. Results should update without losing the query or input focus. Search should reset after navigation, closing the outline, or reloading.
+- Search for a repeated heading title: matching text should be tinted, and duplicate results should show their parent underneath. Try duplicate parents and repeated siblings, then clear the query to restore the plain outline. Literal punctuation such as `[` or `.*` should be treated as text.
 - Rename a heading and confirm both its outline entry and rail mark update. Reload with the sidebar pinned, then close it and reload again to check the saved mode.
 
 ### A deliberately long heading to check that the floating table of contents wraps titles comfortably in a narrow preview
