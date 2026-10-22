@@ -37,6 +37,28 @@ function closeButton() { return document.querySelector('.outliner-toc-close'); }
 function rail() { return document.querySelector('.outliner-toc-rail'); }
 function sidebarButton() { return document.querySelector('.outliner-toc-sidebar-button'); }
 function panel() { return document.querySelector('.outliner-toc-panel'); }
+function resizeHandle() { return document.querySelector('.outliner-toc-resize'); }
+function searchInput() { return document.querySelector('.outliner-toc-search input'); }
+function visibleItems() { return items().filter(item => !item.hidden); }
+function sidebarWidth() { return Number.parseFloat(document.body.style.getPropertyValue('--outliner-toc-sidebar-width')); }
+function press(key, target = document.activeElement, options = {}) {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
+  target.dispatchEvent(event);
+  return event;
+}
+function filter(query) {
+  searchInput().value = query;
+  searchInput().dispatchEvent(new Event('input', { bubbles: true }));
+}
+function resizePointer(type, clientX, pointerId = 1) {
+  const handle = resizeHandle();
+  handle.setPointerCapture ||= jest.fn();
+  handle.hasPointerCapture ||= jest.fn(() => true);
+  handle.releasePointerCapture ||= jest.fn();
+  const event = new MouseEvent(type, { clientX, button: 0, bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'pointerId', { value: pointerId });
+  handle.dispatchEvent(event);
+}
 function pointer(type, pointerType = 'mouse') {
   const event = new Event(type);
   Object.defineProperty(event, 'pointerType', { value: pointerType });
@@ -59,6 +81,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   localStorage.clear();
   reducedMotion = false;
+  jest.replaceProperty(window, 'innerWidth', 1200);
   window.MARKDOWN_OUTLINER_TEST_MODE = true;
   window.scrollTo = jest.fn();
   window.matchMedia = jest.fn(query => ({
@@ -376,4 +399,274 @@ test('a document rendered directly in the body cannot fold the TOC or create an 
   expect(document.getElementById('empty').querySelector('.outliner-toggle')).toBeNull();
   fold('title');
   expect(document.querySelector('.outliner-toc').classList.contains('outliner-hidden')).toBe(false);
+});
+
+test('dragging the pinned edge adjusts width in both directions and saves only on release', () => {
+  setup('<h1>Title</h1><h2>Details</h2>');
+  rail().click();
+  expect(resizeHandle().hidden).toBe(true);
+  sidebarButton().click();
+  expect(resizeHandle().hidden).toBe(false);
+  resizePointer('pointerdown', 900);
+  resizePointer('pointermove', 800, 2);
+  expect(sidebarWidth()).toBe(288);
+  resizePointer('pointermove', 800);
+  expect(sidebarWidth()).toBe(388);
+  expect(localStorage.getItem('markdown-outliner-toc-width')).toBeNull();
+  resizePointer('pointermove', 900);
+  expect(sidebarWidth()).toBe(288);
+  resizePointer('pointermove', 780);
+  resizePointer('pointerup', 780);
+  expect(sidebarWidth()).toBe(408);
+  expect(localStorage.getItem('markdown-outliner-toc-width')).toBe('408');
+  expect(document.body.classList.contains('outliner-toc-resizing')).toBe(false);
+  expect(resizeHandle().getAttribute('aria-valuenow')).toBe('408');
+  expect(resizeHandle().releasePointerCapture).toHaveBeenCalledWith(1);
+  setup('<h1>Reloaded</h1>');
+  expect(sidebarWidth()).toBe(408);
+  expect(panel().hidden).toBe(false);
+});
+
+test('viewport resizing temporarily clamps the width without losing the saved preference', () => {
+  localStorage.setItem('markdown-outliner-toc-mode', 'sidebar');
+  localStorage.setItem('markdown-outliner-toc-width', '520');
+  setup('<h1>Title</h1>');
+  expect(sidebarWidth()).toBe(520);
+  window.innerWidth = 320;
+  window.dispatchEvent(new Event('resize'));
+  expect(sidebarWidth()).toBe(288);
+  // Simply clicking the edge is not a width change.
+  resizePointer('pointerdown', 32);
+  resizePointer('pointerup', 32);
+  expect(localStorage.getItem('markdown-outliner-toc-width')).toBe('520');
+  window.innerWidth = 1200;
+  window.dispatchEvent(new Event('resize'));
+  expect(sidebarWidth()).toBe(520);
+});
+
+test('dragging and keyboard resizing respect bounds and leave room for the document', () => {
+  setup('<h1>Title</h1>');
+  sidebarButton().click();
+  resizePointer('pointerdown', 900);
+  resizePointer('pointermove', 1700);
+  resizePointer('pointerup', 1700);
+  expect(sidebarWidth()).toBe(224);
+  press('ArrowLeft', resizeHandle());
+  expect(sidebarWidth()).toBe(240);
+  press('ArrowLeft', resizeHandle(), { shiftKey: true });
+  expect(sidebarWidth()).toBe(304);
+  press('ArrowRight', resizeHandle());
+  expect(sidebarWidth()).toBe(288);
+  press('End', resizeHandle());
+  expect(sidebarWidth()).toBe(560);
+  window.innerWidth = 901;
+  window.dispatchEvent(new Event('resize'));
+  expect(sidebarWidth()).toBe(421);
+  expect(resizeHandle().getAttribute('aria-valuemax')).toBe('421');
+  press('Home', resizeHandle());
+  expect(sidebarWidth()).toBe(224);
+  expect(localStorage.getItem('markdown-outliner-toc-width')).toBe('224');
+});
+
+test.each(['pointercancel', 'lostpointercapture', 'blur', 'Escape', 'dispose'])(
+  '%s during a drag cancels the change and removes resize state', action => {
+    setup('<h1>Title</h1>');
+    sidebarButton().click();
+    resizePointer('pointerdown', 900);
+    resizePointer('pointermove', 800);
+    expect(sidebarWidth()).toBe(388);
+    if (action === 'blur') window.dispatchEvent(new Event('blur'));
+    else if (action === 'Escape') press('Escape', resizeHandle());
+    else if (action === 'dispose') window.markdownOutlinerToc.dispose();
+    else resizePointer(action, 800);
+    expect(document.body.classList.contains('outliner-toc-resizing')).toBe(false);
+    expect(localStorage.getItem('markdown-outliner-toc-width')).toBeNull();
+    if (action !== 'dispose') {
+      expect(sidebarWidth()).toBe(288);
+      expect(panel().hidden).toBe(false);
+    } else expect(document.body.style.getPropertyValue('--outliner-toc-sidebar-width')).toBe('');
+  }
+);
+
+test.each(['not-a-width', 'Infinity', '-10', '0', ''])(
+  'invalid saved width %j uses the default', value => {
+    localStorage.setItem('markdown-outliner-toc-width', value);
+    setup('<h1>Title</h1>');
+    expect(sidebarWidth()).toBe(288);
+  }
+);
+
+test('search opens only for an unmodified slash within the TOC and filters plain heading text', () => {
+  setup('<h1>Guide</h1><h2>Advanced Configuration</h2><h2>Basic Configuration</h2><h3>Paths / URLs</h3>');
+  expect(searchInput().closest('[hidden]')).not.toBeNull();
+  expect(press('/', document.body).defaultPrevented).toBe(false);
+  rail().focus();
+  expect(press('/', rail(), { ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(panel().hidden).toBe(true);
+  press('/');
+  expect(panel().hidden).toBe(false);
+  expect(document.activeElement).toBe(searchInput());
+  filter(' CONFIG advanced ');
+  expect(visibleItems().map(item => item.textContent)).toEqual(['Advanced Configuration']);
+  expect(document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3')).toHaveLength(4);
+  expect(document.querySelectorAll('.outliner-toc-mark')).toHaveLength(4);
+  expect(press('/').defaultPrevented).toBe(false);
+  filter('/');
+  expect(visibleItems().map(item => item.textContent)).toEqual(['Paths / URLs']);
+  expect(localStorage.getItem('markdown-outliner-toc-mode')).toBeNull();
+});
+
+test.each([false, true])('Escape dismisses search first, then the outline (pinned: %s)', pinned => {
+  setup('<h1>Title</h1><h2>Details</h2>');
+  rail().click();
+  if (pinned) sidebarButton().click();
+  press('/');
+  filter('Details');
+  press('Escape');
+  expect(searchInput().closest('[hidden]')).not.toBeNull();
+  expect(searchInput().value).toBe('');
+  expect(visibleItems()).toHaveLength(2);
+  expect(panel().hidden).toBe(false);
+  expect(document.activeElement).toBe(items()[0]);
+  expect(document.body.classList.contains('outliner-toc-sidebar')).toBe(pinned);
+  press('Escape');
+  expect(panel().hidden).toBe(true);
+  expect(document.activeElement).toBe(rail());
+});
+
+test.each([false, true])('Enter reveals a filtered folded heading and clears search (pinned: %s)', pinned => {
+  setup('<h1 id="parent">Parent</h1><h2 id="target">Target</h2><p>Details</p><h1 id="other">Other</h1><p>Keep folded</p>');
+  window.markdownOutliner.collapseAll();
+  rail().click();
+  if (pinned) sidebarButton().click();
+  press('/');
+  filter('target');
+  press('Enter');
+  expect(document.getElementById('target').closest('.outliner-hidden')).toBeNull();
+  expect(document.getElementById('parent').classList.contains('collapsed')).toBe(false);
+  expect(document.getElementById('other').classList.contains('collapsed')).toBe(true);
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 156, behavior: 'smooth' });
+  expect(searchInput().value).toBe('');
+  expect(searchInput().closest('[hidden]')).not.toBeNull();
+  expect(visibleItems()).toHaveLength(3);
+  expect(panel().hidden).toBe(!pinned);
+  expect(document.activeElement).toBe(pinned ? items()[1] : rail());
+});
+
+test('search supports keyboard result selection and a safe empty state', () => {
+  setup('<h1>Title</h1><h2>First match</h2><h2>Other</h2><h2>Second match</h2>');
+  rail().click();
+  press('/');
+  filter('match');
+  press('ArrowDown');
+  expect(document.activeElement).toBe(items()[1]);
+  press('ArrowDown');
+  expect(document.activeElement).toBe(items()[3]);
+  press('ArrowUp');
+  press('ArrowUp');
+  expect(document.activeElement).toBe(searchInput());
+  filter('<script>');
+  expect(visibleItems()).toHaveLength(0);
+  expect(document.querySelector('.outliner-toc-empty').hidden).toBe(false);
+  press('Enter');
+  press('ArrowDown');
+  expect(window.scrollTo).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(searchInput());
+  expect(document.querySelector('.outliner-toc').hidden).toBe(false);
+  expect(panel().hidden).toBe(false);
+  filter('');
+  expect(visibleItems()).toHaveLength(4);
+  expect(document.querySelector('.outliner-toc-empty').hidden).toBe(true);
+});
+
+test('IME composition keys do not submit search or dismiss the floating outline', () => {
+  setup('<h1>Title</h1><h2>Details</h2>');
+  rail().click();
+  press('/');
+  filter('Details');
+  expect(press('Enter', searchInput(), { isComposing: true }).defaultPrevented).toBe(false);
+  expect(press('Escape', searchInput(), { isComposing: true }).defaultPrevented).toBe(false);
+  expect(window.scrollTo).not.toHaveBeenCalled();
+  expect(panel().hidden).toBe(false);
+  expect(searchInput().closest('[hidden]')).toBeNull();
+  expect(searchInput().value).toBe('Details');
+});
+
+test('choosing the already active search result reveals its position in the restored sidebar', () => {
+  setup('<h1>Current section</h1><h2>Other section</h2>');
+  sidebarButton().click();
+  press('/');
+  filter('Current section');
+  const navigation = document.querySelector('.outliner-toc-items');
+  items()[0].dataset.top = '600';
+  navigation.scrollTop = 0;
+  press('Enter');
+  expect(searchInput().closest('[hidden]')).not.toBeNull();
+  expect(navigation.scrollTop).toBeGreaterThan(0);
+  expect(document.activeElement).toBe(items()[0]);
+});
+
+test('a live heading rebuild preserves the query and input focus, without following reading progress', async () => {
+  setup('<h1 id="first">First</h1><h2 id="target">Target</h2>');
+  rail().click();
+  press('/');
+  filter('target');
+  const navigation = document.querySelector('.outliner-toc-items');
+  navigation.scrollTop = 120;
+  document.getElementById('target').dataset.top = '20';
+  window.dispatchEvent(new Event('scroll'));
+  await flushUpdates();
+  expect(navigation.scrollTop).toBe(120);
+  document.getElementById('target').lastChild.textContent = 'Renamed';
+  await flushUpdates();
+  expect(searchInput().value).toBe('target');
+  expect(document.activeElement).toBe(searchInput());
+  expect(visibleItems()).toHaveLength(0);
+  document.querySelector('.markdown-body').insertAdjacentHTML('beforeend', '<h2>New Target</h2>');
+  await flushUpdates();
+  expect(visibleItems().map(item => item.textContent)).toEqual(['New Target']);
+  expect(document.querySelector('.outliner-toc-empty').hidden).toBe(true);
+  expect(document.activeElement).toBe(searchInput());
+});
+
+test('search retains focus when the pointer leaves, and resets when the outline is dismissed or reloaded', () => {
+  setup('<h1>Title</h1><h2>Details</h2>');
+  rail().click();
+  press('/');
+  filter('Details');
+  searchInput().dispatchEvent(new Event('pointerdown', { bubbles: true }));
+  pointer('pointerleave');
+  jest.advanceTimersByTime(200);
+  expect(panel().hidden).toBe(false);
+  sidebarButton().click();
+  expect(searchInput().value).toBe('Details');
+  expect(document.activeElement).toBe(searchInput());
+  execute('toc');
+  window.markdownOutlinerToc.refresh();
+  expect(document.querySelectorAll('.outliner-toc-search')).toHaveLength(1);
+  expect(searchInput().closest('[hidden]')).not.toBeNull();
+  expect(searchInput().value).toBe('');
+  closeButton().click();
+  rail().click();
+  press('/');
+  filter('Details');
+  document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+  expect(panel().hidden).toBe(true);
+  rail().click();
+  expect(visibleItems()).toHaveLength(2);
+  expect(searchInput().value).toBe('');
+});
+
+test('width changes and search remain usable when browser storage is unavailable', () => {
+  jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Unavailable'); });
+  jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Unavailable'); });
+  setup('<h1>Title</h1><h2>Details</h2>', ['toc']);
+  sidebarButton().click();
+  press('ArrowLeft', resizeHandle());
+  expect(sidebarWidth()).toBe(304);
+  press('/', items()[0]);
+  filter('Details');
+  press('Enter');
+  expect(window.scrollTo).toHaveBeenCalledTimes(1);
+  expect(panel().hidden).toBe(false);
 });

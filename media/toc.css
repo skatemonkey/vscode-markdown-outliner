@@ -142,6 +142,40 @@
   scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
 }
 
+/* Search uses the existing corner action row and disappears when dismissed. */
+.outliner-toc-search {
+  flex: none;
+  padding: 10px 38px 0 10px;
+}
+
+.outliner-toc-search input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--vscode-input-border, var(--toc-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background, color-mix(in srgb, var(--toc-foreground) 5%, var(--toc-surface)));
+  color: var(--vscode-input-foreground, var(--toc-foreground));
+  font: inherit;
+}
+
+.outliner-toc-search input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--toc-muted));
+}
+
+.outliner-toc.is-searching .outliner-toc-items {
+  padding: 6px 10px 10px;
+}
+
+.outliner-toc-empty {
+  margin: 0;
+  padding: 12px 6px;
+  color: var(--toc-muted);
+}
+
 .outliner-toc .outliner-toc-item {
   display: block;
   width: 100%;
@@ -182,7 +216,8 @@
   border-left: 1px solid currentColor;
 }
 
-.outliner-toc button:focus-visible {
+.outliner-toc button:focus-visible,
+.outliner-toc-search input:focus-visible {
   outline: 2px solid var(--vscode-focusBorder, var(--toc-accent));
   outline-offset: -2px;
 }
@@ -191,7 +226,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 288px;
+  width: var(--outliner-toc-sidebar-width, 288px);
   max-width: calc(100vw - 32px);
 }
 
@@ -207,10 +242,44 @@
   box-shadow: none;
 }
 
+.outliner-toc-resize {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.outliner-toc-resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+}
+
+.outliner-toc-resize:hover::after,
+.outliner-toc-resize:focus-visible::after,
+.outliner-toc-resizing .outliner-toc-resize::after {
+  background: var(--vscode-focusBorder, var(--toc-accent));
+}
+
+body.outliner-toc-resizing,
+body.outliner-toc-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
 /* Narrow previews keep their reading width even with a sidebar open. */
 @media (min-width: 901px) {
   body.outliner-toc-sidebar > .markdown-body {
-    margin-right: 288px;
+    margin-right: var(--outliner-toc-sidebar-width, 288px);
   }
 }
 
@@ -232,6 +301,19 @@
   .outliner-toc-items {
     scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
     padding-right: 58px;
+  }
+  .outliner-toc-search {
+    padding-right: 58px;
+  }
+  .outliner-toc-search input {
+    height: 44px;
+  }
+  .outliner-toc-resize {
+    left: -12px;
+    width: 24px;
+  }
+  .outliner-toc-resize::after {
+    left: 11px;
   }
 }
 

@@ -6,9 +6,14 @@
   window.markdownOutlinerToc?.dispose();
 
   const STORAGE_KEY = 'markdown-outliner-toc-mode';
+  const WIDTH_STORAGE_KEY = 'markdown-outliner-toc-width';
+  const DEFAULT_WIDTH = 288;
+  const MIN_WIDTH = 224;
+  const MAX_WIDTH = 560;
   const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
   const UI_SELECTOR = '[data-outliner-ui]';
   let root, panel, navigation, rail, marks, closeButton, sidebarButton;
+  let resizeHandle, searchRow, searchInput, emptyResults;
   let entries = [];
   let activeHeading = null;
   let observer = null;
@@ -22,6 +27,9 @@
   let keyboardInteraction = false;
   let suppressHover = false;
   let closeTimer = null;
+  let sidebarWidth = readSidebarWidth();
+  let resizeDrag = null;
+  let searchOpen = false;
 
   function readPreference() {
     try {
@@ -32,14 +40,193 @@
     return false;
   }
 
+  // Sidebar sizing is independent of the floating panel and its saved mode.
+  function readSidebarWidth() {
+    try {
+      const width = Number(localStorage.getItem(WIDTH_STORAGE_KEY));
+      if (Number.isFinite(width) && width > 0) return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
+    } catch (_) { /* Use the default when browser storage is unavailable. */ }
+    return DEFAULT_WIDTH;
+  }
+
+  function widthBounds() {
+    // Keep a readable document column on wide previews; narrow ones use an overlay.
+    const available = Math.max(0, window.innerWidth - (window.innerWidth > 900 ? 480 : 32));
+    return { min: Math.min(MIN_WIDTH, available), max: Math.min(MAX_WIDTH, available) };
+  }
+
+  function clampWidth(width) {
+    const { min, max } = widthBounds();
+    return Math.round(Math.max(min, Math.min(max, width)));
+  }
+
+  function applySidebarWidth() {
+    const width = clampWidth(sidebarWidth);
+    document.body.style.setProperty('--outliner-toc-sidebar-width', `${width}px`);
+    const { min, max } = widthBounds();
+    resizeHandle.setAttribute('aria-valuemin', String(min));
+    resizeHandle.setAttribute('aria-valuemax', String(max));
+    resizeHandle.setAttribute('aria-valuenow', String(width));
+    resizeHandle.setAttribute('aria-valuetext', `${width} pixels`);
+    schedule(false);
+  }
+
+  function saveSidebarWidth() {
+    try {
+      localStorage.setItem(WIDTH_STORAGE_KEY, String(sidebarWidth));
+    } catch (_) { /* Keep this session's width in memory. */ }
+  }
+
+  function finishResize(cancel = false) {
+    if (!resizeDrag) return;
+    const drag = resizeDrag;
+    resizeDrag = null;
+    if (cancel) sidebarWidth = drag.preferredWidth;
+    else if (drag.moved) saveSidebarWidth();
+    document.body.classList.remove('outliner-toc-resizing');
+    if (resizeHandle.hasPointerCapture(drag.pointerId)) resizeHandle.releasePointerCapture(drag.pointerId);
+    applySidebarWidth();
+  }
+
+  function createResizeHandle() {
+    const handle = document.createElement('div');
+    handle.className = 'outliner-toc-resize';
+    handle.tabIndex = 0;
+    handle.setAttribute('role', 'separator');
+    handle.setAttribute('aria-orientation', 'vertical');
+    handle.setAttribute('aria-label', 'Resize table of contents');
+    handle.setAttribute('aria-controls', panel.id);
+    handle.title = 'Drag to resize. Left and Right arrows adjust the width.';
+    handle.addEventListener('pointerdown', event => {
+      if (!pinned || resizeDrag || event.button !== 0 || event.isPrimary === false) return;
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
+      resizeDrag = {
+        pointerId: event.pointerId, startX: event.clientX,
+        startWidth: clampWidth(sidebarWidth), preferredWidth: sidebarWidth, moved: false
+      };
+      handle.focus({ preventScroll: true });
+      document.body.classList.add('outliner-toc-resizing');
+    });
+    handle.addEventListener('pointermove', event => {
+      if (!resizeDrag || event.pointerId !== resizeDrag.pointerId ||
+          (!resizeDrag.moved && event.clientX === resizeDrag.startX)) return;
+      resizeDrag.moved = true;
+      sidebarWidth = clampWidth(resizeDrag.startWidth + resizeDrag.startX - event.clientX);
+      applySidebarWidth();
+    });
+    handle.addEventListener('pointerup', event => {
+      if (event.pointerId === resizeDrag?.pointerId) finishResize();
+    });
+    const cancel = event => {
+      if (event.pointerId === resizeDrag?.pointerId) finishResize(true);
+    };
+    handle.addEventListener('pointercancel', cancel);
+    handle.addEventListener('lostpointercapture', cancel);
+    handle.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && resizeDrag) {
+        event.preventDefault();
+        event.stopPropagation();
+        finishResize(true);
+        return;
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey || resizeDrag) return;
+      const step = event.shiftKey ? 64 : 16;
+      const { min, max } = widthBounds();
+      const width = {
+        ArrowLeft: clampWidth(sidebarWidth) + step, ArrowRight: clampWidth(sidebarWidth) - step,
+        Home: min, End: max
+      }[event.key];
+      if (width === undefined) return;
+      event.preventDefault();
+      event.stopPropagation();
+      sidebarWidth = clampWidth(width);
+      applySidebarWidth();
+      saveSidebarWidth();
+    });
+    return handle;
+  }
+
+  // Search filters only outline entries; the document and heading rail stay intact.
+  function visibleEntries() {
+    return entries.filter(entry => !entry.button.hidden);
+  }
+
+  function filterEntries(resetScroll = false) {
+    const words = searchOpen ? searchInput.value.trim().toLowerCase().split(/\s+/).filter(Boolean) : [];
+    entries.forEach(entry => {
+      entry.button.hidden = !words.every(word => entry.label.toLowerCase().includes(word));
+    });
+    emptyResults.hidden = !searchOpen || visibleEntries().length > 0;
+    if (resetScroll) navigation.scrollTop = 0;
+  }
+
+  function openSearch() {
+    if (!pinned && !floatingOpen) openFloating();
+    cancelClose();
+    searchOpen = true;
+    searchRow.hidden = false;
+    root.classList.add('is-searching');
+    filterEntries();
+    searchInput.focus({ preventScroll: true });
+    searchInput.select();
+  }
+
+  function closeSearch(moveFocus = false) {
+    searchOpen = false;
+    searchInput.value = '';
+    searchRow.hidden = true;
+    root.classList.remove('is-searching');
+    filterEntries();
+    if (moveFocus) {
+      focusActiveEntry();
+      revealActiveEntry();
+    }
+  }
+
+  function onTocKeyDown(event) {
+    keyboardInteraction = true;
+    if (event.isComposing) return;
+    const editing = event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+    if (event.key === '/' && !editing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      openSearch();
+    } else if (event.key === 'Escape' && (pinned || floatingOpen)) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (searchOpen) closeSearch(true);
+      else dismiss();
+    } else if (searchOpen && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const matches = visibleEntries();
+      if (event.key === 'Enter' && event.target === searchInput) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (matches.length) navigate(matches[0].heading);
+      } else if (['ArrowDown', 'ArrowUp'].includes(event.key) &&
+          (event.target === searchInput || event.target.classList.contains('outliner-toc-item'))) {
+        event.preventDefault();
+        event.stopPropagation();
+        const index = matches.findIndex(entry => entry.button === event.target);
+        const next = event.target === searchInput
+          ? (event.key === 'ArrowDown' ? 0 : matches.length - 1)
+          : index + (event.key === 'ArrowDown' ? 1 : -1);
+        const target = next < 0 ? searchInput : matches[Math.min(next, matches.length - 1)]?.button;
+        target?.focus({ preventScroll: true });
+        if (target && target !== searchInput) revealEntry(target);
+      }
+    }
+  }
+
   function cancelClose() {
     window.clearTimeout(closeTimer);
     closeTimer = null;
   }
 
   function focusActiveEntry() {
-    const target = entries.find(entry => entry.heading === activeHeading)?.button ||
-      entries[0]?.button || (pinned ? closeButton : rail);
+    const matches = visibleEntries();
+    const target = matches.find(entry => entry.heading === activeHeading)?.button ||
+      matches[0]?.button || (searchOpen ? searchInput : pinned ? closeButton : rail);
     target.focus({ preventScroll: true });
   }
 
@@ -57,6 +244,7 @@
     // A click or Escape must not immediately reopen the panel under the pointer.
     suppressHover = pointerInside;
     if (moveFocus || panel.contains(document.activeElement)) rail.focus({ preventScroll: true });
+    closeSearch();
     keyboardInteraction = false;
     updateVisibility();
   }
@@ -66,7 +254,7 @@
     // A short grace period makes crossing from the rail into the panel forgiving.
     closeTimer = window.setTimeout(() => {
       closeTimer = null;
-      if (!pinned && !pointerInside && !(keyboardInteraction && root.contains(document.activeElement))) {
+      if (!pinned && !pointerInside && !((keyboardInteraction || searchOpen) && root.contains(document.activeElement))) {
         closeFloating();
       }
     }, 160);
@@ -74,6 +262,7 @@
 
   function setPinned(value) {
     cancelClose();
+    finishResize(true);
     pinned = value;
     floatingOpen = false;
     suppressHover = pointerInside;
@@ -83,8 +272,12 @@
     updateVisibility();
     if (pinned) {
       revealActiveEntry();
-      focusActiveEntry();
-    } else rail.focus({ preventScroll: true });
+      if (searchOpen) searchInput.focus({ preventScroll: true });
+      else focusActiveEntry();
+    } else {
+      closeSearch();
+      rail.focus({ preventScroll: true });
+    }
     schedule(false);
   }
 
@@ -101,13 +294,17 @@
     root.classList.toggle('is-sidebar', pinned);
     closeButton.hidden = !pinned;
     sidebarButton.hidden = pinned;
+    resizeHandle.hidden = !pinned;
+    if (!entries.length) finishResize(true);
     // Only an explicit sidebar choice reserves space in the reading column.
     document.body.classList.toggle('outliner-toc-sidebar', pinned && entries.length > 0);
   }
 
   function createShell() {
     cancelClose();
+    finishResize(true);
     floatingOpen = pointerInside = keyboardInteraction = suppressHover = false;
+    searchOpen = false;
     root = document.createElement('aside');
     root.className = 'outliner-toc';
     root.dataset.outlinerUi = 'toc';
@@ -126,8 +323,26 @@
     closeButton.addEventListener('click', () => setPinned(false));
 
     navigation = document.createElement('nav');
+    navigation.id = 'outliner-toc-items';
     navigation.className = 'outliner-toc-items';
     navigation.setAttribute('aria-label', 'Table of contents');
+    searchRow = document.createElement('div');
+    searchRow.className = 'outliner-toc-search';
+    searchRow.hidden = true;
+    searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Find a heading…';
+    searchInput.autocomplete = 'off';
+    searchInput.spellcheck = false;
+    searchInput.setAttribute('aria-label', 'Search table of contents');
+    searchInput.setAttribute('aria-controls', navigation.id);
+    searchInput.addEventListener('input', () => filterEntries(true));
+    searchRow.appendChild(searchInput);
+    emptyResults = document.createElement('p');
+    emptyResults.className = 'outliner-toc-empty';
+    emptyResults.setAttribute('role', 'status');
+    emptyResults.textContent = 'No matching headings';
+    emptyResults.hidden = true;
     sidebarButton = document.createElement('button');
     sidebarButton.type = 'button';
     sidebarButton.className = 'outliner-toc-mode-button outliner-toc-sidebar-button';
@@ -137,7 +352,7 @@
     icon.setAttribute('aria-hidden', 'true');
     sidebarButton.appendChild(icon);
     sidebarButton.addEventListener('click', () => setPinned(true));
-    panel.append(closeButton, sidebarButton, navigation);
+    panel.append(closeButton, sidebarButton, searchRow, navigation);
 
     rail = document.createElement('button');
     rail.type = 'button';
@@ -153,7 +368,8 @@
     marks.setAttribute('aria-hidden', 'true');
     rail.appendChild(marks);
 
-    root.append(panel, rail);
+    resizeHandle = createResizeHandle();
+    root.append(resizeHandle, panel, rail);
     root.addEventListener('pointerenter', event => {
       if (event.pointerType === 'touch') return;
       pointerInside = true;
@@ -174,15 +390,9 @@
     });
     // Keep preview click-to-editor behavior from treating the TOC as Markdown.
     root.addEventListener('click', event => event.stopPropagation());
-    root.addEventListener('keydown', event => {
-      keyboardInteraction = true;
-      if (event.key === 'Escape' && (pinned || floatingOpen)) {
-        event.preventDefault();
-        event.stopPropagation();
-        dismiss();
-      }
-    });
+    root.addEventListener('keydown', onTocKeyDown);
     document.body.appendChild(root);
+    applySidebarWidth();
   }
 
   function headingText(heading) {
@@ -230,11 +440,14 @@
         railFragment.appendChild(mark);
         return { ...entry, button, mark };
       });
-      navigation.replaceChildren(fragment);
+      navigation.replaceChildren(fragment, emptyResults);
       marks.replaceChildren(railFragment);
       marks.style.setProperty('--toc-count', String(entries.length));
       navigation.scrollTop = scrollTop;
-      entries.find(entry => entry.heading === focusedHeading)?.button.focus({ preventScroll: true });
+      filterEntries();
+      const focusedEntry = entries.find(entry => entry.heading === focusedHeading && !entry.button.hidden);
+      if (focusedEntry) focusedEntry.button.focus({ preventScroll: true });
+      else if (focusedHeading && searchOpen) searchInput.focus({ preventScroll: true });
       activeHeading = null;
     }
     updateVisibility();
@@ -248,11 +461,17 @@
     }
     // Resolve at click time: VS Code loads contributed scripts asynchronously.
     window.markdownOutliner?.revealHeading(heading);
+    if (pinned && searchOpen) {
+      closeSearch();
+      entries.find(entry => entry.heading === heading)?.button.focus({ preventScroll: true });
+    }
     if (!pinned) closeFloating(true);
     const top = Math.max(0, window.scrollY + heading.getBoundingClientRect().top - 24);
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top, behavior: reducedMotion ? 'instant' : 'smooth' });
     setActiveHeading(heading);
+    // Restoring the full outline can move an entry even if it is already active.
+    revealActiveEntry();
   }
 
   function setActiveHeading(heading) {
@@ -268,7 +487,12 @@
 
   function revealActiveEntry() {
     const button = entries.find(entry => entry.heading === activeHeading)?.button;
-    if (!button || !(pinned || floatingOpen)) return;
+    // Reading progress must not move the result list while a query is being used.
+    if (!button || button.hidden || searchOpen || !(pinned || floatingOpen)) return;
+    revealEntry(button);
+  }
+
+  function revealEntry(button) {
     // Scroll only the TOC, never the document, to keep its active entry visible.
     const itemRect = button.getBoundingClientRect();
     const listRect = navigation.getBoundingClientRect();
@@ -304,13 +528,15 @@
   }
 
   function onLayoutChange() { schedule(false); }
+  function onWindowResize() { applySidebarWidth(); }
+  function onWindowBlur() { finishResize(true); }
   function onPreviewUpdate() { schedule(true); }
   function onOutsidePointerDown(event) {
     if (floatingOpen && !root.contains(event.target)) closeFloating();
   }
   function onDocumentKeyDown(event) {
     // Hover does not move focus, so Escape must also work from the document.
-    if (event.key === 'Escape' && floatingOpen) {
+    if (event.key === 'Escape' && !event.isComposing && floatingOpen) {
       event.preventDefault();
       event.stopPropagation();
       closeFloating();
@@ -337,7 +563,8 @@
       attributes: true, attributeFilter: ['class', 'hidden', 'open']
     });
     window.addEventListener('scroll', onLayoutChange, { passive: true });
-    window.addEventListener('resize', onLayoutChange);
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('blur', onWindowBlur);
     window.addEventListener('vscode.markdown.updateContent', onPreviewUpdate);
     document.addEventListener('load', onLayoutChange, true);
     document.addEventListener('pointerdown', onOutsidePointerDown);
@@ -348,9 +575,11 @@
     disposed = true;
     cancelClose();
     observer?.disconnect();
+    finishResize(true);
     if (frame !== null) cancelAnimationFrame(frame);
     window.removeEventListener('scroll', onLayoutChange);
-    window.removeEventListener('resize', onLayoutChange);
+    window.removeEventListener('resize', onWindowResize);
+    window.removeEventListener('blur', onWindowBlur);
     window.removeEventListener('vscode.markdown.updateContent', onPreviewUpdate);
     document.removeEventListener('DOMContentLoaded', init);
     document.removeEventListener('load', onLayoutChange, true);
@@ -358,6 +587,7 @@
     document.removeEventListener('keydown', onDocumentKeyDown);
     root?.remove();
     document.body?.classList.remove('outliner-toc-sidebar');
+    document.body?.style.removeProperty('--outliner-toc-sidebar-width');
   }
 
   window.markdownOutlinerToc = {

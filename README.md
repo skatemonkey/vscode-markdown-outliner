@@ -63,6 +63,8 @@ The slim rail on the right represents all H1–H6 headings with short lines. Lin
 - Move the pointer away, click outside, or press **Escape** to dismiss the floating outline. Moving from the rail into the panel keeps it open.
 - The small sidebar icon in the top-right corner pins the outline in a full-height right column. Hover or keyboard focus shows **Open in Sidebar**. Once pinned, the same spot shows **×** to close the sidebar and return to the rail. Neither mode has a footer. The sidebar stays open during navigation and remembers this choice across reloads; **Escape** also closes it while focused inside.
 - Only the pinned sidebar reserves reading space on wide previews. On narrow previews it overlays the page so the text keeps its readable width.
+- Drag the sidebar's left edge to resize it; the width is remembered across reloads and adapts to the available space. Keyboard users can Tab to the edge and use **Left/Right** arrows (**Shift** for larger steps), or **Home/End** for the minimum/maximum width. **Escape** cancels an ongoing drag.
+- Press **/** while focused in the TOC to reveal search. Type words to filter headings, use **Up/Down** to choose a result, and **Enter** to jump to it. **Escape** closes search and restores the full outline before a second Escape dismisses the TOC. Search stays hidden until requested and resets after navigation or closing the outline.
 - The list updates as headings change and follows the VS Code theme. Long outlines scroll within the panel, and long titles wrap.
 - Touch users can tap the rail. Use **Tab** to reach it and **Enter** or **Space** to open the outline and focus the current heading. Keyboard focus keeps the outline open until you leave its controls or dismiss it. Navigation respects reduced-motion preferences.
 - Documents without headings hide the TOC entirely.
@@ -175,8 +177,8 @@ There are two execution environments: the VS Code extension host and the preview
 | [src/extension.ts](src/extension.ts) | Extension host entry point; compiled into the ignored `out/` directory. |
 | [media/outliner.js](media/outliner.js) | Preview initialization, heading/list folding, toggle controls, context menus, and saved state. Loaded directly, without bundling. |
 | [media/outliner.css](media/outliner.css) | Toggle placement, hover/focus visibility, list spacing, hidden content, and menu appearance. |
-| [media/toc.js](media/toc.js) | Heading discovery, TOC navigation, scroll tracking, hover/focus handling, and sidebar persistence. |
-| [media/toc.css](media/toc.css) | Heading rail, floating overlay, pinned sidebar, theme colors, and responsive layout. |
+| [media/toc.js](media/toc.js) | Heading discovery, navigation, scroll tracking, hover/focus handling, on-demand search, and sidebar resizing/persistence. |
+| [media/toc.css](media/toc.css) | Heading rail, floating overlay, resizable sidebar, search field, theme colors, and responsive layout. |
 | [test/outliner.test.js](test/outliner.test.js) | Jest/jsdom behavior and regression tests using the preview script and stylesheet. |
 | [test/toc.test.js](test/toc.test.js) | TOC interaction, live updates, lifecycle, and integration with folding. |
 | [test-sample.md](test-sample.md) | Manual preview examples, including nested headings, lists, and mixed block content. |
@@ -189,7 +191,7 @@ Initialization adds controls and restores collapsed state. A `MutationObserver` 
 
 Collapsed state is stored in `localStorage` under `markdown-outliner-state`. Element keys combine the tag, parent tag, and first 100 characters of text after removing toggles. They contain no explicit document ID.
 
-The TOC is a separate preview script and stylesheet registered in `package.json`. It calls `window.markdownOutliner.revealHeading(heading)` when navigating; folding state remains owned by the outliner. It has a temporary hover overlay and a persistent sidebar mode, saved as `floating` or `sidebar` under `markdown-outliner-toc-mode`. Hover state is never saved, and the old `markdown-outliner-toc-open` preference is ignored. Only sidebar mode adds the body class that reserves space on wide previews. Its observer ignores extension controls, and reloading its script disposes the previous instance, listeners, and pending hover timer. Controls marked with `data-outliner-ui` are excluded from folding.
+The TOC is a separate preview script and stylesheet registered in `package.json`. It calls `window.markdownOutliner.revealHeading(heading)` when navigating; folding state remains owned by the outliner. It has a temporary hover overlay and a persistent sidebar mode, saved as `floating` or `sidebar` under `markdown-outliner-toc-mode`. The preferred sidebar width is saved under `markdown-outliner-toc-width`; viewport changes clamp its displayed size without replacing that preference. Hover and search state are never saved, and the old `markdown-outliner-toc-open` preference is ignored. Search filters the outline only and is reapplied when headings change. Only sidebar mode adds the body class that reserves space on wide previews. Its observer ignores extension controls, and reloading its script disposes the previous instance, listeners, resize gesture, and pending hover timer. Controls marked with `data-outliner-ui` are excluded from folding.
 
 Keep changes focused, preserve independent nested folding and native list markers, and update this README when the architecture or commands change.
 
