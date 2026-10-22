@@ -2,6 +2,8 @@
 
 This is a test document to demonstrate the collapsible sections feature. Hover this H1 title to reveal its toggle in the left margin.
 
+In the TOC, this page title should sit above the scrolling sections. H2 sections such as **Wide blocks** align left, while H3 subsections are indented. Click the TOC title to return here; search should also find the title.
+
 ## Wide blocks
 
 Click the **Expand all** icon directly below the **Page width** icon, without opening the slider. Wide tables and flows should use the available reading area while this paragraph keeps its width. Click **Restore all** to return them to the reading column. Try a narrow page width and a pinned TOC sidebar.

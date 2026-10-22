@@ -59,7 +59,9 @@ For example:
 
 ### Floating Table of Contents
 
-The slim rail on the right represents all H1–H6 headings with short lines. Line lengths reflect heading depth, and the bright line marks the current section. Hover over the rail to reveal the full outline without moving or resizing the page. The outline has no title bar; subheadings are indented and the current section uses the theme's accent color.
+The slim rail on the right represents all H1–H6 headings with short lines. Line lengths reflect heading depth, and the bright line marks the current section. Hover over the rail to reveal the full outline without moving or resizing the page. Subheadings are indented and the current section uses the theme's accent color.
+
+- When the first heading is the document's only H1, it appears as a compact, clickable page title above the scrolling sections. H2 entries start at the left edge; H3 and deeper headings are indented beneath them. The title stays visible as the list scrolls, with long titles limited to two lines and their full text available on hover. Documents with several H1s or no opening H1 keep their normal hierarchy. This applies to both the floating outline and the pinned sidebar.
 
 - Click an entry to reveal its section and scroll to it. Navigation expands the selected section and any folded parents, while keeping unrelated sections and nested children folded. The floating outline then returns to the rail.
 - The destination heading briefly gets a soft theme-colored highlight after scrolling settles, then fades back to normal. Reduced-motion users get a temporary static highlight. This also works when navigating from search or the pinned sidebar.
@@ -68,7 +70,7 @@ The slim rail on the right represents all H1–H6 headings with short lines. Lin
 - Only the pinned sidebar reserves reading space on wide previews. On narrow previews it overlays the page so the text keeps its readable width.
 - Drag the sidebar's left edge to resize it; the width is remembered across reloads and adapts to the available space. Keyboard users can Tab to the edge and use **Left/Right** arrows (**Shift** for larger steps), or **Home/End** for the minimum/maximum width. **Escape** cancels an ongoing drag.
 - Press **/** while focused in the TOC to reveal search. Type words to filter headings, use **Up/Down** to choose a result, and **Enter** to jump to it. **Escape** closes search and restores the full outline before a second Escape dismisses the TOC. Search stays hidden until requested and resets after navigation or closing the outline.
-- Search highlights matching text. Identical result titles show a muted parent label, expanded to a short ancestor path when needed; repeated titles under the same parent get an occurrence number. These details disappear when the query is cleared.
+- Search highlights matching text and includes the page title as a regular result while search is open. Identical result titles show a muted parent label, expanded to a short ancestor path when needed; repeated titles under the same parent get an occurrence number. These details disappear when the query is cleared.
 - The list updates as headings change and follows the VS Code theme. Long outlines scroll within the panel, and long titles wrap.
 - Touch users can tap the rail. Use **Tab** to reach it and **Enter** or **Space** to open the outline and focus the current heading. Keyboard focus keeps the outline open until you leave its controls or dismiss it. Navigation respects reduced-motion preferences.
 - Documents without headings hide the TOC entirely.
@@ -119,6 +121,7 @@ Click the small **Expand all** icon directly below the **Page width** icon at th
    - Collapse state is automatically saved and restored
    - Check hover visibility, keyboard controls, native list markers, and independent nested folding
    - Hover over the heading rail, navigate into a folded section, pin/close the sidebar, and resize the preview
+   - Check that the page title stays above the scrolling TOC, H2 sections align left, and H3 sections are indented; click the title to return to it and use search to find it
    - Open the page width control, drag the slider, and check that the column stays centered with and without a pinned TOC; reload to check persistence
    - In **Wide blocks**, use the **Expand all / Restore all** icon directly below the Page width icon. Check both examples, local scrolling, keyboard/touch controls, folding, and the pinned TOC; surrounding text and code should keep their widths
 

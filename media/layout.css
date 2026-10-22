@@ -19,7 +19,7 @@ body.outliner-layout-enabled > .markdown-body {
 
 /* Leave room for both layout icons, including in short and touch previews. */
 .outliner-layout-enabled .outliner-toc:not(.is-sidebar) {
-  top: calc(var(--outliner-layout-control-size) * 2 + 28px);
+  --toc-top: calc(var(--outliner-layout-control-size) * 2 + 28px);
   --toc-max-height: min(72vh, 600px, calc(100vh - var(--outliner-layout-control-size) * 2 - 56px));
   --toc-max-height: min(72dvh, 600px, calc(100dvh - var(--outliner-layout-control-size) * 2 - 56px));
 }

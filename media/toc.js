@@ -14,7 +14,7 @@
   const UI_SELECTOR = '[data-outliner-ui]';
   const DESTINATION_CLASS = 'outliner-toc-destination';
   let root, panel, navigation, rail, marks, closeButton, sidebarButton;
-  let resizeHandle, searchRow, searchInput, emptyResults;
+  let resizeHandle, titleRow, searchRow, searchInput, emptyResults;
   let entries = [];
   let activeHeading = null;
   let observer = null;
@@ -235,6 +235,15 @@
   }
 
   function filterEntries(resetScroll = false) {
+    const title = entries.find(entry => entry.isTitle);
+    const showTitle = !!title && !searchOpen;
+    titleRow.hidden = !showTitle;
+    root.classList.toggle('has-page-title', showTitle);
+    // Search includes the title as a regular result, without duplicating it.
+    if (title) {
+      const container = showTitle ? titleRow : navigation;
+      if (title.button.parentElement !== container) container.prepend(title.button);
+    }
     const words = searchOpen ? searchInput.value.trim().split(/\s+/).filter(Boolean) : [];
     const patterns = [...new Set(words)].map(word =>
       new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu'));
@@ -412,6 +421,9 @@
     navigation.id = 'outliner-toc-items';
     navigation.className = 'outliner-toc-items';
     navigation.setAttribute('aria-label', 'Table of contents');
+    titleRow = document.createElement('div');
+    titleRow.className = 'outliner-toc-heading';
+    titleRow.hidden = true;
     searchRow = document.createElement('div');
     searchRow.className = 'outliner-toc-search';
     searchRow.hidden = true;
@@ -438,7 +450,7 @@
     icon.setAttribute('aria-hidden', 'true');
     sidebarButton.appendChild(icon);
     sidebarButton.addEventListener('click', () => setPinned(true));
-    panel.append(closeButton, sidebarButton, searchRow, navigation);
+    panel.append(closeButton, sidebarButton, titleRow, searchRow, navigation);
 
     rail = document.createElement('button');
     rail.type = 'button';
@@ -509,24 +521,29 @@
     if (!unchanged) {
       const focusedHeading = entries.find(entry => entry.button === document.activeElement)?.heading;
       const scrollTop = navigation.scrollTop;
-      const baseLevel = next.reduce((level, entry) => Math.min(level, entry.level), 6);
+      const titleHeading = next[0]?.level === 1 && next.filter(entry => entry.level === 1).length === 1
+        ? next[0].heading : null;
+      const baseLevel = titleHeading ? 2 : next.reduce((level, entry) => Math.min(level, entry.level), 6);
       const fragment = document.createDocumentFragment();
       const railFragment = document.createDocumentFragment();
       const contexts = searchContexts(next);
+      titleRow.replaceChildren();
       entries = next.map(entry => {
+        const isTitle = entry.heading === titleHeading;
+        const depth = String(Math.max(0, entry.level - baseLevel));
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'outliner-toc-item';
-        button.style.setProperty('--toc-depth', String(entry.level - baseLevel));
+        button.style.setProperty('--toc-depth', depth);
         button.textContent = entry.label;
         button.title = entry.label;
         button.addEventListener('click', () => navigate(entry.heading));
         fragment.appendChild(button);
         const mark = document.createElement('span');
         mark.className = 'outliner-toc-mark';
-        mark.style.setProperty('--toc-depth', String(entry.level - baseLevel));
+        mark.style.setProperty('--toc-depth', depth);
         railFragment.appendChild(mark);
-        return { ...entry, button, mark, context: contexts.get(entry.heading) || '' };
+        return { ...entry, isTitle, button, mark, context: contexts.get(entry.heading) || '' };
       });
       navigation.replaceChildren(fragment, emptyResults);
       marks.replaceChildren(railFragment);
@@ -534,7 +551,11 @@
       navigation.scrollTop = scrollTop;
       filterEntries();
       const focusedEntry = entries.find(entry => entry.heading === focusedHeading && !entry.button.hidden);
-      if (focusedEntry) focusedEntry.button.focus({ preventScroll: true });
+      if (focusedEntry) {
+        focusedEntry.button.focus({ preventScroll: true });
+        // Replacing the focused title/entry fires focusout before it is restored.
+        cancelClose();
+      }
       else if (focusedHeading && searchOpen) searchInput.focus({ preventScroll: true });
       activeHeading = null;
     }
@@ -617,6 +638,7 @@
   }
 
   function revealEntry(button) {
+    if (!navigation.contains(button)) return; // The page title stays above the scrolling sections.
     // Scroll only the TOC, never the document, to keep its active entry visible.
     const itemRect = button.getBoundingClientRect();
     const listRect = navigation.getBoundingClientRect();

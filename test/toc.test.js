@@ -116,10 +116,77 @@ test('lists all heading levels in document order without folding controls or mar
     'Project guide', 'Getting started', 'Configuration', 'Options', 'Details', 'Notes',
     'Heading in a list', 'Diagram <script>literal text</script>'
   ]);
-  expect(items()[5].style.getPropertyValue('--toc-depth')).toBe('5');
+  expect(document.querySelector('.outliner-toc-heading').textContent).toBe('Project guide');
+  expect(document.querySelector('.outliner-toc-items').firstElementChild).toBe(items()[1]);
+  expect(items()[1].style.getPropertyValue('--toc-depth')).toBe('0');
+  expect(items()[5].style.getPropertyValue('--toc-depth')).toBe('4');
   expect(document.querySelectorAll('.outliner-toc-mark')).toHaveLength(items().length);
   expect(document.querySelector('.outliner-toc script')).toBeNull();
   expect(document.querySelector('.outliner-toc .outliner-toggle')).toBeNull();
+});
+
+test.each([
+  ['<h1>First</h1><h2>Details</h2><h1>Second</h1><h3>More</h3>', ['0', '1', '0', '2']],
+  ['<h2>Introduction</h2><h1>Later heading</h1><h2>Details</h2>', ['1', '0', '1']],
+  ['<h2>First</h2><h3>Details</h3><h2>Second</h2>', ['0', '1', '0']]
+])('documents without a single opening H1 keep their normal hierarchy: %s', (html, depths) => {
+  setup(html);
+  expect(document.querySelector('.outliner-toc-heading').hidden).toBe(true);
+  expect(document.querySelectorAll('.outliner-toc-items .outliner-toc-item')).toHaveLength(depths.length);
+  expect(items().map(item => item.style.getPropertyValue('--toc-depth'))).toEqual(depths);
+});
+
+test('the page title stays separate with skipped levels and returns to the title without scrolling the section list', () => {
+  setup('<h1 id="title">Page title</h1><h3>Deep section</h3><h4>Details</h4>');
+  sidebarButton().click();
+  const title = document.querySelector('.outliner-toc-heading button');
+  const navigation = document.querySelector('.outliner-toc-items');
+  expect(items().map(item => item.style.getPropertyValue('--toc-depth'))).toEqual(['0', '1', '2']);
+  fold('title');
+  navigation.scrollTop = 120;
+  title.click();
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'smooth' });
+  expect(document.getElementById('title').classList.contains('collapsed')).toBe(false);
+  expect(title.getAttribute('aria-current')).toBe('location');
+  expect(navigation.scrollTop).toBe(120);
+  expect(panel().hidden).toBe(false);
+});
+
+test('search includes the title once and restores its header and focus after navigation', () => {
+  setup('<h1>Page title</h1><h2>Details</h2>');
+  sidebarButton().click();
+  const title = document.querySelector('.outliner-toc-heading button');
+  press('/');
+  expect(document.querySelector('.outliner-toc-heading').hidden).toBe(true);
+  filter('page title');
+  expect(visibleItems()).toEqual([title]);
+  expect(title.closest('nav')).not.toBeNull();
+  press('Enter');
+  expect(document.querySelector('.outliner-toc-heading').hidden).toBe(false);
+  expect(document.querySelector('.outliner-toc-heading button')).toBe(title);
+  expect(document.querySelectorAll('.outliner-toc-item')).toHaveLength(2);
+  expect(document.querySelector('.outliner-toc-items').firstElementChild.textContent).toBe('Details');
+  expect(document.activeElement).toBe(title);
+});
+
+test('live title edits and additional H1s update the header and indentation while preserving focus', async () => {
+  setup('<h1 id="title">Original title</h1><h2>Details</h2>');
+  sidebarButton().click();
+  items()[0].focus();
+  document.getElementById('title').lastChild.textContent = 'Updated title';
+  await flushUpdates();
+  expect(document.querySelector('.outliner-toc-heading').textContent).toBe('Updated title');
+  expect(document.activeElement).toBe(items()[0]);
+  document.querySelector('.markdown-body').insertAdjacentHTML('beforeend', '<h1 id="second">Second title</h1>');
+  await flushUpdates();
+  expect(document.querySelector('.outliner-toc-heading').hidden).toBe(true);
+  expect(items()[1].style.getPropertyValue('--toc-depth')).toBe('1');
+  expect(document.activeElement).toBe(items()[0]);
+  document.getElementById('second').remove();
+  await flushUpdates();
+  expect(document.querySelector('.outliner-toc-heading').hidden).toBe(false);
+  expect(items()[1].style.getPropertyValue('--toc-depth')).toBe('0');
+  expect(document.activeElement).toBe(items()[0]);
 });
 
 test('the rail opens with keyboard focus and Escape returns to the rail without saving a hover state', () => {
@@ -593,7 +660,7 @@ test('IME composition keys do not submit search or dismiss the floating outline'
 });
 
 test('choosing the already active search result reveals its position in the restored sidebar', () => {
-  setup('<h1>Current section</h1><h2>Other section</h2>');
+  setup('<h2>Current section</h2><h2>Other section</h2>');
   sidebarButton().click();
   press('/');
   filter('Current section');

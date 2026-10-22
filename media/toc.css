@@ -22,9 +22,10 @@
   --toc-border: var(--vscode-widget-border, color-mix(in srgb, var(--toc-foreground) 12%, transparent));
   --toc-max-height: min(72vh, 600px, calc(100vh - 96px));
   --toc-max-height: min(72dvh, 600px, calc(100dvh - 96px));
+  --toc-top: clamp(24px, 8vh, 72px);
   position: fixed;
   z-index: 100;
-  top: clamp(24px, 8vh, 72px);
+  top: var(--toc-top);
   right: 12px;
   display: flex;
   align-items: flex-start;
@@ -92,7 +93,9 @@
   flex-direction: column;
   width: 288px;
   max-width: calc(100vw - 68px);
-  max-height: var(--toc-max-height);
+  /* The panel can use space the rail reserves for its own padding. */
+  max-height: min(72vh, 600px, calc(100vh - var(--toc-top) - 4px));
+  max-height: min(72dvh, 600px, calc(100dvh - var(--toc-top) - 4px));
   overflow: hidden;
   border: 1px solid var(--toc-border);
   border-radius: 10px;
@@ -152,6 +155,17 @@
   padding: 10px 38px 10px 10px;
 }
 
+/* A single opening H1 is the page title; sections start at H2 below it. */
+.outliner-toc-heading {
+  flex: none;
+  min-width: 0;
+  padding: 10px 38px 4px 10px;
+}
+
+.outliner-toc.has-page-title .outliner-toc-items {
+  padding: 4px 10px 10px;
+}
+
 .outliner-toc-panel:hover .outliner-toc-items,
 .outliner-toc-panel:focus-within .outliner-toc-items {
   scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
@@ -201,6 +215,15 @@
   text-align: start;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.outliner-toc-heading .outliner-toc-item {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--toc-foreground);
+  font-weight: 600;
 }
 
 .outliner-toc .outliner-toc-item:hover,
@@ -334,7 +357,8 @@ body.outliner-toc-resizing * {
     scrollbar-color: var(--vscode-scrollbarSlider-background, rgb(127 127 127 / 35%)) transparent;
     padding-right: 58px;
   }
-  .outliner-toc-search {
+  .outliner-toc-search,
+  .outliner-toc-heading {
     padding-right: 58px;
   }
   .outliner-toc-search input {
