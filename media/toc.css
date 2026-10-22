@@ -1,3 +1,18 @@
+/* A temporary destination cue changes color only, keeping heading geometry intact. */
+.outliner-toc-destination {
+  background-color: color-mix(in srgb, var(--vscode-textLink-foreground, #8b72f8) 13%, transparent);
+  border-radius: 4px;
+}
+
+@keyframes outliner-toc-destination-fade {
+  0%, 25% {
+    background-color: color-mix(in srgb, var(--vscode-textLink-foreground, #8b72f8) 13%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 /* Hover previews are overlays. Only a pinned sidebar reserves reading space. */
 .outliner-toc {
   --toc-accent: var(--vscode-textLink-foreground, #8b72f8);
@@ -318,6 +333,9 @@ body.outliner-toc-resizing * {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .outliner-toc-destination {
+    animation: outliner-toc-destination-fade 1.4s ease-out forwards;
+  }
   .outliner-toc button {
     transition: color 120ms ease, background-color 120ms ease;
   }

@@ -12,6 +12,7 @@
   const MAX_WIDTH = 560;
   const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
   const UI_SELECTOR = '[data-outliner-ui]';
+  const DESTINATION_CLASS = 'outliner-toc-destination';
   let root, panel, navigation, rail, marks, closeButton, sidebarButton;
   let resizeHandle, searchRow, searchInput, emptyResults;
   let entries = [];
@@ -30,6 +31,9 @@
   let sidebarWidth = readSidebarWidth();
   let resizeDrag = null;
   let searchOpen = false;
+  let destinationHeading = null;
+  let destinationTimer = null;
+  let destinationPending = false;
 
   function readPreference() {
     try {
@@ -405,6 +409,7 @@
 
   function refresh() {
     if (disposed) return;
+    if (destinationHeading && !destinationHeading.isConnected) clearDestinationHighlight();
     if (!root?.isConnected) createShell();
     const headings = Array.from(document.querySelectorAll(HEADING_SELECTOR))
       .filter(heading => !heading.closest(UI_SELECTOR));
@@ -469,9 +474,45 @@
     const top = Math.max(0, window.scrollY + heading.getBoundingClientRect().top - 24);
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top, behavior: reducedMotion ? 'instant' : 'smooth' });
+    highlightDestination(heading, reducedMotion);
     setActiveHeading(heading);
     // Restoring the full outline can move an entry even if it is already active.
     revealActiveEntry();
+  }
+
+  // Keep the landing cue separate from the outline's persistent active section.
+  function clearDestinationHighlight() {
+    window.clearTimeout(destinationTimer);
+    destinationTimer = null;
+    destinationPending = false;
+    destinationHeading?.classList.remove(DESTINATION_CLASS);
+    destinationHeading = null;
+  }
+
+  function showDestinationHighlight() {
+    window.clearTimeout(destinationTimer);
+    if (!destinationHeading?.isConnected || !destinationHeading.getClientRects().length) {
+      clearDestinationHighlight();
+      return;
+    }
+    destinationPending = false;
+    destinationHeading.classList.add(DESTINATION_CLASS);
+    // Remove temporary styling after the 1.4s fade, including when animations are disabled.
+    destinationTimer = window.setTimeout(clearDestinationHighlight, 1500);
+  }
+
+  function queueDestinationHighlight() {
+    window.clearTimeout(destinationTimer);
+    // Restart this short delay while scrolling so long jumps get a full landing cue.
+    destinationTimer = window.setTimeout(showDestinationHighlight, 120);
+  }
+
+  function highlightDestination(heading, reducedMotion) {
+    clearDestinationHighlight();
+    destinationHeading = heading;
+    destinationPending = !reducedMotion;
+    if (reducedMotion) showDestinationHighlight();
+    else queueDestinationHighlight();
   }
 
   function setActiveHeading(heading) {
@@ -527,7 +568,10 @@
     });
   }
 
-  function onLayoutChange() { schedule(false); }
+  function onLayoutChange(event) {
+    if (destinationPending && event.type === 'scroll') queueDestinationHighlight();
+    schedule(false);
+  }
   function onWindowResize() { applySidebarWidth(); }
   function onWindowBlur() { finishResize(true); }
   function onPreviewUpdate() { schedule(true); }
@@ -575,6 +619,7 @@
     disposed = true;
     cancelClose();
     observer?.disconnect();
+    clearDestinationHighlight();
     finishResize(true);
     if (frame !== null) cancelAnimationFrame(frame);
     window.removeEventListener('scroll', onLayoutChange);

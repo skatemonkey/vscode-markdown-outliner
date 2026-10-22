@@ -252,6 +252,7 @@ Yet more content to demonstrate the usefulness of collapsing.
 Try the table of contents:
 - Hover over the short heading lines on the right. The full outline should appear without changing the document's position, width, or scroll position.
 - Move across into the outline, then click a heading to jump to its section and return to the rail. Moving away, clicking outside, or pressing Escape should also dismiss it.
+- After a jump, the destination heading should briefly highlight and fade without moving the text. Try a long jump, repeated jumps, a search result, and the pinned sidebar; only the latest destination should highlight. With reduced motion enabled, the cue should briefly stay still and then disappear.
 - Collapse a parent heading or list item, then navigate to a heading inside it. The required folds should open while unrelated sections stay collapsed.
 - Hover or keyboard-focus the sidebar icon in the top-right corner to see **Open in Sidebar**, then activate it. The outline should become a full-height right column and stay open during navigation. The same corner should now show **×** to return to the rail. Neither mode should have a footer.
 - Resize the preview to a narrow pane. Both modes should fit; the sidebar should overlay the page instead of squeezing the reading column.

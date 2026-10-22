@@ -60,6 +60,7 @@ For example:
 The slim rail on the right represents all H1–H6 headings with short lines. Line lengths reflect heading depth, and the bright line marks the current section. Hover over the rail to reveal the full outline without moving or resizing the page. The outline has no title bar; subheadings are indented and the current section uses the theme's accent color.
 
 - Click an entry to reveal its section and scroll to it. Navigation expands the selected section and any folded parents, while keeping unrelated sections and nested children folded. The floating outline then returns to the rail.
+- The destination heading briefly gets a soft theme-colored highlight after scrolling settles, then fades back to normal. Reduced-motion users get a temporary static highlight. This also works when navigating from search or the pinned sidebar.
 - Move the pointer away, click outside, or press **Escape** to dismiss the floating outline. Moving from the rail into the panel keeps it open.
 - The small sidebar icon in the top-right corner pins the outline in a full-height right column. Hover or keyboard focus shows **Open in Sidebar**. Once pinned, the same spot shows **×** to close the sidebar and return to the rail. Neither mode has a footer. The sidebar stays open during navigation and remembers this choice across reloads; **Escape** also closes it while focused inside.
 - Only the pinned sidebar reserves reading space on wide previews. On narrow previews it overlays the page so the text keeps its readable width.
@@ -177,8 +178,8 @@ There are two execution environments: the VS Code extension host and the preview
 | [src/extension.ts](src/extension.ts) | Extension host entry point; compiled into the ignored `out/` directory. |
 | [media/outliner.js](media/outliner.js) | Preview initialization, heading/list folding, toggle controls, context menus, and saved state. Loaded directly, without bundling. |
 | [media/outliner.css](media/outliner.css) | Toggle placement, hover/focus visibility, list spacing, hidden content, and menu appearance. |
-| [media/toc.js](media/toc.js) | Heading discovery, navigation, scroll tracking, hover/focus handling, on-demand search, and sidebar resizing/persistence. |
-| [media/toc.css](media/toc.css) | Heading rail, floating overlay, resizable sidebar, search field, theme colors, and responsive layout. |
+| [media/toc.js](media/toc.js) | Heading discovery, navigation and destination highlighting, scroll tracking, hover/focus handling, on-demand search, and sidebar resizing/persistence. |
+| [media/toc.css](media/toc.css) | Heading rail, floating overlay, resizable sidebar, search field, destination fade, theme colors, and responsive layout. |
 | [test/outliner.test.js](test/outliner.test.js) | Jest/jsdom behavior and regression tests using the preview script and stylesheet. |
 | [test/toc.test.js](test/toc.test.js) | TOC interaction, live updates, lifecycle, and integration with folding. |
 | [test-sample.md](test-sample.md) | Manual preview examples, including nested headings, lists, and mixed block content. |
