@@ -65,7 +65,7 @@ Here's a nested list that should have collapse controls:
 
 ### Separate bullet and numbered lists
 
-The text of all outer-level bullet and numbered items should start on the same vertical line, both expanded and collapsed. Collapse **Parent bullet**: only its nested bullets should hide; the separate lists should stay visible and keep their alignment. The folding triangle sits to the left of the markers.
+All outer-level bullet and number markers should start at the same edge, both expanded and collapsed. Collapse **Parent bullet**: only its nested bullets should hide; the separate lists should stay visible and keep their alignment. The folding triangle sits close to the left of each marker.
 
 Compare the compact triangle-to-marker gap here and in **Hover controls with longer numbers** below. Hover or keyboard-focus the triangles: they should stay the same size and leave a clear gap before the bullet or number. Wrapped lines should start with the item text, and folding should never shift that text sideways.
 
@@ -78,13 +78,13 @@ Compare the compact triangle-to-marker gap here and in **Hover controls with lon
 1. First numbered item
 2. Second numbered item
 
-- A following bullet uses the same text column.
+- A following bullet keeps the same marker edge.
 - This parent bullet is deliberately long so it wraps in a narrow preview; its continuation lines should keep the same text column without running under the triangle or bullet.
   - Fold and reopen this child to check the wrapped parent label.
 
 ### Adjacent lists across 9 and 10
 
-Every triangle should stay close to its own bullet or number, even though all outer item text shares the column reserved for **10.**. Folding should preserve both the gap and text alignment.
+The bullet, **9.**, and **10.** markers should start at the same edge. Item 10's text starts slightly farther right to make room for its extra digit; neighboring bullets keep their compact spacing. Child markers use the same indent beneath either number. Folding should preserve these positions.
 
 - Parent bullet before the numbers
   - Nested bullet
@@ -145,16 +145,16 @@ This section contains various types of content:
 
 ### Hover controls with longer numbers
 
-The text of **98.** through **100.** and the following bullet should share one column, with enough room for the numbers and folding triangles.
+The first digit of **98.**, **99.**, and **100.** should share the same edge as **1.** through **3.** above. The following bullet keeps that marker edge too. Text moves right only for the extra digits in its own number; triangles stay close and aligned. Wrapped lines should align with their item's text.
 
 98. Hover this item to reveal its toggle to the left of the number.
     - Child item
 99. Collapse this item, then move the pointer away: its toggle stays visible.
     - Child item
-100. Click the text or number: only the toggle should fold the children.
+100. Click the text or number: only the toggle should fold the children. This deliberately longer label should wrap in a narrow preview, with its continuation starting under the text rather than under the number or triangle.
      - Child item
 
-- A neighboring bullet aligns with the numbered item text.
+- A neighboring bullet keeps its compact spacing and the same marker edge.
 
 ### Multi-level mixed lists
 

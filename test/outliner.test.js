@@ -512,11 +512,10 @@ describe('Markdown Outliner - Regression Protection', () => {
     const next = document.getElementById('next-list');
     const nested = document.getElementById('nested');
     const nextPadding = getComputedStyle(next).paddingInlineStart;
-    const firstMarkerWidth = getComputedStyle(first).getPropertyValue('--outliner-marker-width');
 
-    expect(nextPadding).not.toBe('');
+    expect(nextPadding).toBe('4px');
+    expect(getComputedStyle(first).paddingInlineStart).toBe(nextPadding);
     expect(nextPadding).toBe(getComputedStyle(nested).paddingInlineStart);
-    expect(getComputedStyle(next).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
     expect(next.previousElementSibling).toBe(first);
     expect(next.closest('li')).toBeNull();
     expect(next.querySelector('.outliner-toggle')).toBeNull();
@@ -527,8 +526,7 @@ describe('Markdown Outliner - Regression Protection', () => {
 
     window.markdownOutliner.refresh();
     expect(getComputedStyle(next).paddingInlineStart).toBe(nextPadding);
-    expect(getComputedStyle(first).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
-    expect(getComputedStyle(next).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
+    expect(getComputedStyle(first).paddingInlineStart).toBe(nextPadding);
     expect(isHidden(nested)).toBe(true);
     expect(isHidden(next)).toBe(false);
 
@@ -537,7 +535,7 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(isHidden(next)).toBe(false);
   });
 
-  test('toggles follow their own markers when adjacent lists reach two digits', () => {
+  test('each item reserves its own marker space across 9 and 10', () => {
     setupTestDocument(`
       <ul id="bullets"><li id="bullet">Parent bullet
         <ul><li>Bullet child</li></ul>
@@ -557,9 +555,8 @@ describe('Markdown Outliner - Regression Protection', () => {
     const bullets = document.getElementById('bullets');
     const numbers = document.getElementById('numbers');
 
-    // Text stays aligned to the widest number; shorter markers keep a compact toggle gap.
-    expect(getComputedStyle(bullets).getPropertyValue('--outliner-marker-width')).toBe('3ch');
-    expect(getComputedStyle(numbers).getPropertyValue('--outliner-marker-width')).toBe('3ch');
+    expect(getComputedStyle(bullets).paddingInlineStart).toBe('4px');
+    expect(getComputedStyle(numbers).paddingInlineStart).toBe('4px');
     expect(markerWidth(bullet)).toBe('2ch');
     expect(markerWidth(nine)).toBe('2ch');
     expect(markerWidth(ten)).toBe('3ch');
@@ -570,10 +567,10 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(isHidden(nine.querySelector('ul'))).toBe(true);
     expect(isHidden(ten)).toBe(false);
     expect(markerWidth(nine)).toBe('2ch');
-    expect(getComputedStyle(numbers).getPropertyValue('--outliner-marker-width')).toBe('3ch');
+    expect(getComputedStyle(numbers).paddingInlineStart).toBe('4px');
   });
 
-  test('adjacent lists share room for wider numbers after live edits without shifting on folding', () => {
+  test('adding a wider number changes only that item, including across separate lists', () => {
     setupTestDocument(`
       <ul id="bullets"><li id="parent">Parent bullet
         <ul id="nested"><li>Nested bullet</li></ul>
@@ -585,33 +582,41 @@ describe('Markdown Outliner - Regression Protection', () => {
     const bullets = document.getElementById('bullets');
     const numbers = document.getElementById('numbers');
     const nested = document.getElementById('nested');
-    const markerWidth = list => getComputedStyle(list).getPropertyValue('--outliner-marker-width');
+    const markerWidth = item => getComputedStyle(item).getPropertyValue('--outliner-item-marker-width');
+    const bullet = document.getElementById('parent');
+    const first = numbers.firstElementChild;
+    const separate = document.getElementById('separate');
 
-    expect(markerWidth(bullets)).toBe('3ch');
-    expect(markerWidth(numbers)).toBe('3ch');
-    expect(markerWidth(nested)).toBe('2ch');
-    expect(markerWidth(document.getElementById('separate'))).toBe('7ch');
+    expect(markerWidth(bullet)).toBe('2ch');
+    expect(markerWidth(first)).toBe('3ch');
+    expect(markerWidth(nested.firstElementChild)).toBe('2ch');
+    expect(markerWidth(separate.firstElementChild)).toBe('7ch');
+    [bullets, numbers, nested, separate].forEach(list => {
+      expect(getComputedStyle(list).paddingInlineStart).toBe('4px');
+    });
 
     numbers.insertAdjacentHTML('beforeend', '<li>Step 100</li>');
     window.markdownOutliner.refresh();
-    expect(markerWidth(bullets)).toBe('4ch');
-    expect(markerWidth(numbers)).toBe('4ch');
-    expect(markerWidth(nested)).toBe('2ch');
-    expect(getComputedStyle(document.getElementById('parent')).getPropertyValue('--outliner-item-marker-width')).toBe('2ch');
-    expect(getComputedStyle(numbers.firstElementChild).getPropertyValue('--outliner-item-marker-width')).toBe('3ch');
-    expect(getComputedStyle(numbers.lastElementChild).getPropertyValue('--outliner-item-marker-width')).toBe('4ch');
+    expect(markerWidth(bullet)).toBe('2ch');
+    expect(markerWidth(first)).toBe('3ch');
+    expect(markerWidth(numbers.lastElementChild)).toBe('4ch');
+    expect(numbers.firstElementChild).toBe(first);
 
     click(getListToggle(document.getElementById('parent')));
     window.markdownOutliner.refresh();
     expect(isHidden(nested)).toBe(true);
     expect(isHidden(numbers)).toBe(false);
-    expect(markerWidth(bullets)).toBe('4ch');
-    expect(markerWidth(numbers)).toBe('4ch');
+    expect(markerWidth(bullet)).toBe('2ch');
+    expect(markerWidth(first)).toBe('3ch');
+    expect(markerWidth(numbers.lastElementChild)).toBe('4ch');
 
     numbers.lastElementChild.remove();
     window.markdownOutliner.refresh();
-    expect(markerWidth(bullets)).toBe('3ch');
-    expect(markerWidth(numbers)).toBe('3ch');
+    expect(markerWidth(bullet)).toBe('2ch');
+    expect(markerWidth(first)).toBe('3ch');
+    [bullets, numbers, nested, separate].forEach(list => {
+      expect(getComputedStyle(list).paddingInlineStart).toBe('4px');
+    });
     expect(isHidden(nested)).toBe(true);
   });
 

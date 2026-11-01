@@ -22,7 +22,7 @@ A VSCode extension that adds collapsible sections to the markdown preview, makin
 
 1. Open any markdown file in VSCode
 2. Open the preview pane (Ctrl/Cmd + Shift + V)
-3. Hover over a heading or parent list item to reveal its triangle icon (▶/▼), then click the icon to collapse/expand it. Toggles sit in the left margin, before heading text or the list's bullet or number, and stay visible while collapsed. Each list toggle stays close to its own marker, including beside bullets or single-digit numbers next to a longer numbered list. You can also focus a toggle with Tab and use Enter or Space.
+3. Hover over a heading or parent list item to reveal its triangle icon (▶/▼), then click the icon to collapse/expand it. Toggles sit in the left margin, before heading text or the list's bullet or number, and stay visible while collapsed. Bullets and numbers at the same nesting level share a starting edge, with each toggle close to its marker. You can also focus a toggle with Tab and use Enter or Space.
 4. Right-click any triangle icon to access:
    - **Collapse All** - Collapse all nested sections under this heading/list
    - **Expand All** - Expand all nested sections under this heading/list
@@ -47,6 +47,8 @@ Clicking the triangle at the start of the "Section 1" heading will hide everythi
 ### Lists
 
 List items with additional block content get collapse/expand controls. Folding keeps the opening text or block visible and hides subsequent content. Nested items retain their independent collapsed states.
+
+Markers start at the same edge across separate lists. Each item reserves only the space its own marker needs, so longer numbers move their own text without widening neighboring bullets or numbers. Wrapped lines align with that item's text. Nested markers use a consistent indent, independent of the parent's number length. Native bullets and numbering, including starting numbers, reversed lists, and explicit item values, are preserved.
 
 For example:
 

@@ -40,10 +40,18 @@
   height: 1lh;
 }
 
-/* Share a text column for bullets and numbers; controls stay outside the markers. */
+/* Keep the marker edge fixed; each item reserves only its own marker's space. */
 .outliner-list {
-  --outliner-marker-width: 2ch;
-  padding-inline-start: calc(var(--outliner-marker-width) + 4px);
+  padding-inline-start: 4px;
+}
+
+.outliner-list > li {
+  margin-inline-start: var(--outliner-item-marker-width, 2ch);
+}
+
+/* Child markers use a fixed indent, independent of the parent's number length. */
+.outliner-list > li > .outliner-list {
+  margin-inline-start: calc(1.5em - var(--outliner-item-marker-width, 2ch));
 }
 
 .outliner-list-item {
