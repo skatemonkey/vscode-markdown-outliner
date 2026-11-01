@@ -368,15 +368,20 @@
     });
   }
 
-  // Reserve a gutter before the native markers, including multi-digit numbers.
+  // Adjacent lists share a text column with room for their widest native marker.
   function prepareListGutters() {
-    document.querySelectorAll('ul, ol').forEach(list => {
-      if (list.closest('[data-outliner-ui]')) return;
-      const items = Array.from(list.children).filter(item => item.tagName === 'LI');
-      if (!list.closest('li') && !items.some(item => getListContent(item).length > 0)) return;
-      list.classList.add('outliner-list');
+    const lists = Array.from(document.querySelectorAll('ul, ol'))
+      .filter(list => !list.closest('[data-outliner-ui]'));
+    const markerGroups = new Map();
+    const markerWidths = new Map();
+
+    lists.forEach(list => {
+      const group = markerGroups.get(list.previousElementSibling) || list;
+      markerGroups.set(list, group);
+      markerWidths.set(group, markerWidths.get(group) || 2);
       if (list.tagName !== 'OL') return;
 
+      const items = Array.from(list.children).filter(item => item.tagName === 'LI');
       let number = list.hasAttribute('start') ? list.start : list.reversed ? items.length : 1;
       let digits = 1;
       items.forEach(item => {
@@ -384,7 +389,12 @@
         digits = Math.max(digits, String(number).length);
         number += list.reversed ? -1 : 1;
       });
-      list.style.setProperty('--outliner-marker-width', (digits + 1) + 'ch');
+      markerWidths.set(group, Math.max(markerWidths.get(group), digits + 1));
+    });
+
+    lists.forEach(list => {
+      list.classList.add('outliner-list');
+      list.style.setProperty('--outliner-marker-width', markerWidths.get(markerGroups.get(list)) + 'ch');
     });
   }
 

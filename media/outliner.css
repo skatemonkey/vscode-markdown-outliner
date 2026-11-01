@@ -40,9 +40,9 @@
   height: 1lh;
 }
 
-/* Keep list indentation compact; controls extend into the left margin. */
+/* Share a text column for bullets and numbers; controls stay outside the markers. */
 .outliner-list {
-  --outliner-marker-width: 0.75em;
+  --outliner-marker-width: 2ch;
   --outliner-gutter-width: calc(var(--outliner-marker-width) + 20px);
   padding-inline-start: calc(var(--outliner-marker-width) + 4px);
 }
@@ -56,6 +56,17 @@
   top: var(--outliner-list-offset, 0px);
   width: var(--outliner-gutter-width);
   height: var(--outliner-list-line-height, 1.5em);
+}
+
+/* Tighten the visible triangle-to-marker gap without moving text or the click target. */
+.outliner-list-gutter > .outliner-list-toggle {
+  font-size: 10px;
+  text-align: right;
+  transform: none;
+}
+
+.outliner-list > li::marker {
+  font-variant-numeric: tabular-nums;
 }
 
 .outliner-heading > .outliner-heading-gutter > .outliner-toggle,

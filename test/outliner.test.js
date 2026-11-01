@@ -493,6 +493,89 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(isHidden(document.getElementById('nested'))).toBe(false);
   });
 
+  test.each([
+    ['ul', 'ol'],
+    ['ol', 'ul'],
+  ])('a separate %s followed by %s keeps compact spacing and independent folding', (firstTag, nextTag) => {
+    setupTestDocument(`
+      <${firstTag} id="first-list">
+        <li>First item</li>
+        <li>Second item</li>
+        <li id="parent">Parent item
+          <${nextTag} id="nested"><li>Nested item</li><li>Another nested item</li></${nextTag}>
+        </li>
+      </${firstTag}>
+      <${nextTag} id="next-list"><li>First separate item</li><li>Second separate item</li></${nextTag}>
+    `);
+
+    const first = document.getElementById('first-list');
+    const next = document.getElementById('next-list');
+    const nested = document.getElementById('nested');
+    const nextPadding = getComputedStyle(next).paddingInlineStart;
+    const firstMarkerWidth = getComputedStyle(first).getPropertyValue('--outliner-marker-width');
+
+    expect(nextPadding).not.toBe('');
+    expect(nextPadding).toBe(getComputedStyle(nested).paddingInlineStart);
+    expect(getComputedStyle(next).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
+    expect(next.previousElementSibling).toBe(first);
+    expect(next.closest('li')).toBeNull();
+    expect(next.querySelector('.outliner-toggle')).toBeNull();
+
+    click(getListToggle(document.getElementById('parent')));
+    expect(isHidden(nested)).toBe(true);
+    expect(isHidden(next)).toBe(false);
+
+    window.markdownOutliner.refresh();
+    expect(getComputedStyle(next).paddingInlineStart).toBe(nextPadding);
+    expect(getComputedStyle(first).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
+    expect(getComputedStyle(next).getPropertyValue('--outliner-marker-width')).toBe(firstMarkerWidth);
+    expect(isHidden(nested)).toBe(true);
+    expect(isHidden(next)).toBe(false);
+
+    click(getListToggle(document.getElementById('parent')));
+    expect(isHidden(nested)).toBe(false);
+    expect(isHidden(next)).toBe(false);
+  });
+
+  test('adjacent lists share room for wider numbers after live edits without shifting on folding', () => {
+    setupTestDocument(`
+      <ul id="bullets"><li id="parent">Parent bullet
+        <ul id="nested"><li>Nested bullet</li></ul>
+      </li></ul>
+      <ol id="numbers" start="98"><li>Step 98</li><li>Step 99</li></ol>
+      <h2>Separate section</h2>
+      <ol id="separate" start="100000"><li>Separate list</li></ol>
+    `);
+    const bullets = document.getElementById('bullets');
+    const numbers = document.getElementById('numbers');
+    const nested = document.getElementById('nested');
+    const markerWidth = list => getComputedStyle(list).getPropertyValue('--outliner-marker-width');
+
+    expect(markerWidth(bullets)).toBe('3ch');
+    expect(markerWidth(numbers)).toBe('3ch');
+    expect(markerWidth(nested)).toBe('2ch');
+    expect(markerWidth(document.getElementById('separate'))).toBe('7ch');
+
+    numbers.insertAdjacentHTML('beforeend', '<li>Step 100</li>');
+    window.markdownOutliner.refresh();
+    expect(markerWidth(bullets)).toBe('4ch');
+    expect(markerWidth(numbers)).toBe('4ch');
+    expect(markerWidth(nested)).toBe('2ch');
+
+    click(getListToggle(document.getElementById('parent')));
+    window.markdownOutliner.refresh();
+    expect(isHidden(nested)).toBe(true);
+    expect(isHidden(numbers)).toBe(false);
+    expect(markerWidth(bullets)).toBe('4ch');
+    expect(markerWidth(numbers)).toBe('4ch');
+
+    numbers.lastElementChild.remove();
+    window.markdownOutliner.refresh();
+    expect(markerWidth(bullets)).toBe('3ch');
+    expect(markerWidth(numbers)).toBe('3ch');
+    expect(isHidden(nested)).toBe(true);
+  });
+
   test('numbered list markers retain their start, reversed order, and explicit values', () => {
     setupTestDocument(`
       <ol id="numbers" start="100" reversed>

@@ -63,6 +63,25 @@ Here's a nested list that should have collapse controls:
   - Second level item 2.2
 - First level item 3
 
+### Separate bullet and numbered lists
+
+The text of all outer-level bullet and numbered items should start on the same vertical line, both expanded and collapsed. Collapse **Parent bullet**: only its nested bullets should hide; the separate lists should stay visible and keep their alignment. The folding triangle sits to the left of the markers.
+
+Compare the compact triangle-to-marker gap here and in **Hover controls with longer numbers** below. Hover or keyboard-focus the triangles: they should stay the same size and leave a clear gap before the bullet or number. Wrapped lines should start with the item text, and folding should never shift that text sideways.
+
+- First bullet
+- Second bullet
+- Parent bullet
+  - First nested bullet
+  - Second nested bullet
+
+1. First numbered item
+2. Second numbered item
+
+- A following bullet uses the same text column.
+- This parent bullet is deliberately long so it wraps in a narrow preview; its continuation lines should keep the same text column without running under the triangle or bullet.
+  - Fold and reopen this child to check the wrapped parent label.
+
 ### Code Examples
 
 ```javascript
@@ -111,12 +130,16 @@ This section contains various types of content:
 
 ### Hover controls with longer numbers
 
+The text of **98.** through **100.** and the following bullet should share one column, with enough room for the numbers and folding triangles.
+
 98. Hover this item to reveal its toggle to the left of the number.
     - Child item
 99. Collapse this item, then move the pointer away: its toggle stays visible.
     - Child item
 100. Click the text or number: only the toggle should fold the children.
      - Child item
+
+- A neighboring bullet aligns with the numbered item text.
 
 ### Multi-level mixed lists
 
