@@ -43,11 +43,12 @@
 /* Share a text column for bullets and numbers; controls stay outside the markers. */
 .outliner-list {
   --outliner-marker-width: 2ch;
-  --outliner-gutter-width: calc(var(--outliner-marker-width) + 20px);
   padding-inline-start: calc(var(--outliner-marker-width) + 4px);
 }
 
 .outliner-list-item {
+  /* Keep the toggle beside this marker, independently of the shared text column. */
+  --outliner-gutter-width: calc(var(--outliner-item-marker-width, 2ch) + 20px);
   position: relative;
 }
 

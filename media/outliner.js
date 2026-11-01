@@ -379,14 +379,19 @@
       const group = markerGroups.get(list.previousElementSibling) || list;
       markerGroups.set(list, group);
       markerWidths.set(group, markerWidths.get(group) || 2);
-      if (list.tagName !== 'OL') return;
-
       const items = Array.from(list.children).filter(item => item.tagName === 'LI');
+      if (list.tagName !== 'OL') {
+        items.forEach(item => item.style.setProperty('--outliner-item-marker-width', '2ch'));
+        return;
+      }
+
       let number = list.hasAttribute('start') ? list.start : list.reversed ? items.length : 1;
       let digits = 1;
       items.forEach(item => {
         if (item.hasAttribute('value')) number = item.value;
-        digits = Math.max(digits, String(number).length);
+        const itemDigits = String(number).length;
+        digits = Math.max(digits, itemDigits);
+        item.style.setProperty('--outliner-item-marker-width', (itemDigits + 1) + 'ch');
         number += list.reversed ? -1 : 1;
       });
       markerWidths.set(group, Math.max(markerWidths.get(group), digits + 1));

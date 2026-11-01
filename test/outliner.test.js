@@ -537,6 +537,42 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(isHidden(next)).toBe(false);
   });
 
+  test('toggles follow their own markers when adjacent lists reach two digits', () => {
+    setupTestDocument(`
+      <ul id="bullets"><li id="bullet">Parent bullet
+        <ul><li>Bullet child</li></ul>
+      </li></ul>
+      <ol id="numbers" start="9">
+        <li id="nine">Ninth item<ul><li>Ninth child</li></ul></li>
+        <li id="ten">Tenth item<ul><li id="child">Tenth child
+          <ul><li>Grandchild</li></ul>
+        </li></ul></li>
+      </ol>
+    `);
+    const bullet = document.getElementById('bullet');
+    const nine = document.getElementById('nine');
+    const ten = document.getElementById('ten');
+    const child = document.getElementById('child');
+    const markerWidth = item => getComputedStyle(item).getPropertyValue('--outliner-item-marker-width');
+    const bullets = document.getElementById('bullets');
+    const numbers = document.getElementById('numbers');
+
+    // Text stays aligned to the widest number; shorter markers keep a compact toggle gap.
+    expect(getComputedStyle(bullets).getPropertyValue('--outliner-marker-width')).toBe('3ch');
+    expect(getComputedStyle(numbers).getPropertyValue('--outliner-marker-width')).toBe('3ch');
+    expect(markerWidth(bullet)).toBe('2ch');
+    expect(markerWidth(nine)).toBe('2ch');
+    expect(markerWidth(ten)).toBe('3ch');
+    expect(markerWidth(child)).toBe('2ch');
+
+    click(getListToggle(nine));
+    window.markdownOutliner.refresh();
+    expect(isHidden(nine.querySelector('ul'))).toBe(true);
+    expect(isHidden(ten)).toBe(false);
+    expect(markerWidth(nine)).toBe('2ch');
+    expect(getComputedStyle(numbers).getPropertyValue('--outliner-marker-width')).toBe('3ch');
+  });
+
   test('adjacent lists share room for wider numbers after live edits without shifting on folding', () => {
     setupTestDocument(`
       <ul id="bullets"><li id="parent">Parent bullet
@@ -561,6 +597,9 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(markerWidth(bullets)).toBe('4ch');
     expect(markerWidth(numbers)).toBe('4ch');
     expect(markerWidth(nested)).toBe('2ch');
+    expect(getComputedStyle(document.getElementById('parent')).getPropertyValue('--outliner-item-marker-width')).toBe('2ch');
+    expect(getComputedStyle(numbers.firstElementChild).getPropertyValue('--outliner-item-marker-width')).toBe('3ch');
+    expect(getComputedStyle(numbers.lastElementChild).getPropertyValue('--outliner-item-marker-width')).toBe('4ch');
 
     click(getListToggle(document.getElementById('parent')));
     window.markdownOutliner.refresh();
@@ -589,6 +628,13 @@ describe('Markdown Outliner - Regression Protection', () => {
     expect(list.reversed).toBe(true);
     expect(document.getElementById('second').value).toBe(20);
     expect(Array.from(list.children).map(item => item.tagName)).toEqual(['LI', 'LI', 'LI']);
+    const itemWidths = () => Array.from(list.children).map(item =>
+      getComputedStyle(item).getPropertyValue('--outliner-item-marker-width'));
+    expect(itemWidths()).toEqual(['4ch', '3ch', '3ch']);
+
+    document.getElementById('second').value = -100;
+    window.markdownOutliner.refresh();
+    expect(itemWidths()).toEqual(['4ch', '5ch', '5ch']);
   });
 
   test('empty document does not crash', () => {

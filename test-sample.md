@@ -82,6 +82,21 @@ Compare the compact triangle-to-marker gap here and in **Hover controls with lon
 - This parent bullet is deliberately long so it wraps in a narrow preview; its continuation lines should keep the same text column without running under the triangle or bullet.
   - Fold and reopen this child to check the wrapped parent label.
 
+### Adjacent lists across 9 and 10
+
+Every triangle should stay close to its own bullet or number, even though all outer item text shares the column reserved for **10.**. Folding should preserve both the gap and text alignment.
+
+- Parent bullet before the numbers
+  - Nested bullet
+
+9. A single-digit number keeps its toggle close.
+   - Child of item 9
+10. A two-digit number has room for its wider marker.
+    - Child of item 10
+
+- Parent bullet after the numbers
+  - Its toggle should be as close to the bullet as the parent above.
+
 ### Code Examples
 
 ```javascript
