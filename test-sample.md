@@ -67,7 +67,7 @@ Here's a nested list that should have collapse controls:
 
 All outer-level bullet and number markers should start at the same edge, both expanded and collapsed. Collapse **Parent bullet**: only its nested bullets should hide; the separate lists should stay visible and keep their alignment. The folding triangle sits close to the left of each marker.
 
-Compare the compact triangle-to-marker gap here and in **Hover controls with longer numbers** below. Hover or keyboard-focus the triangles: they should stay the same size and leave a clear gap before the bullet or number. Wrapped lines should start with the item text, and folding should never shift that text sideways.
+Compare the compact triangle-to-marker gap here and in **Hover controls with longer numbers** below. Heading and list triangles should share one small size and stay steady on hover or keyboard focus. Try clicking just to the left of a triangle: its larger target should fold that item without catching its neighbor. Clicking the bullet, number, or text should keep the item open. Wrapped lines should start with the item text, and folding should never shift that text sideways.
 
 - First bullet
 - Second bullet
@@ -145,7 +145,7 @@ This section contains various types of content:
 
 ### Hover controls with longer numbers
 
-The first digit of **98.**, **99.**, and **100.** should share the same edge as **1.** through **3.** above. The following bullet keeps that marker edge too. Text moves right only for the extra digits in its own number; triangles stay close and aligned. Wrapped lines should align with their item's text.
+Numbers align on the left; text follows each number. The text after **100.** starts farther right than after **98.** because the number is wider. Wrapped lines align with their item's text, and triangles stay close to the numbers.
 
 98. Hover this item to reveal its toggle to the left of the number.
     - Child item
@@ -191,7 +191,7 @@ Five levels mixing numbers and bullets: hover and fold each parent independently
 
 ### Bullet items with block content
 
-Compare the items below with the mixed item's toggle to see which content folds.
+Compare the items below with the mixed item's toggle to see which content folds. Paragraphs and child lists should have small, consistent gaps, while headings and separate sections remain clearly spaced. Try the larger margin target beside paragraph, quote, and code labels; the triangle should remain aligned with the first visible line.
 
 - `tables`: table layout and routing strategies.
 

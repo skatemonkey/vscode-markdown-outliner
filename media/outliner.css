@@ -2,23 +2,26 @@
 
 /* Toggle button base styles */
 .outliner-toggle {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  margin-right: 0.4em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: 24px;
+  height: min(24px, 100%);
+  /* Grow the click target into the margin while keeping the glyph in place. */
+  margin-inline-start: -10px;
+  padding-inline-start: 10px;
   cursor: pointer;
   user-select: none;
-  font-size: 12px;
+  font-size: 10px;
+  font-weight: normal;
   line-height: 14px;
-  vertical-align: middle;
   opacity: 0.6;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  text-align: center;
+  transition: opacity 0.12s ease;
 }
 
 .outliner-toggle:hover {
   opacity: 1;
-  transform: scale(1.2);
 }
 
 /* Keep heading controls in the left margin, aligned with the first line. */
@@ -49,13 +52,18 @@
   margin-inline-start: var(--outliner-item-marker-width, 2ch);
 }
 
+.outliner-list > li > p {
+  margin-block: 0.35em;
+}
+
 /* Child markers use a fixed indent, independent of the parent's number length. */
 .outliner-list > li > .outliner-list {
+  margin-block: 0.25em;
   margin-inline-start: calc(1.5em - var(--outliner-item-marker-width, 2ch));
 }
 
 .outliner-list-item {
-  /* Keep the toggle beside this marker, independently of the shared text column. */
+  /* Reserve the margin before this item's native marker. */
   --outliner-gutter-width: calc(var(--outliner-item-marker-width, 2ch) + 20px);
   position: relative;
 }
@@ -67,25 +75,16 @@
   height: var(--outliner-list-line-height, 1.5em);
 }
 
-/* Tighten the visible triangle-to-marker gap without moving text or the click target. */
-.outliner-list-gutter > .outliner-list-toggle {
-  font-size: 10px;
-  text-align: right;
-  transform: none;
-}
-
 .outliner-list > li::marker {
   font-variant-numeric: tabular-nums;
 }
 
 .outliner-heading > .outliner-heading-gutter > .outliner-toggle,
 .outliner-list-item > .outliner-list-gutter > .outliner-list-toggle {
-  margin: 0;
   opacity: 0;
-  pointer-events: none;
 }
 
-/* Reveal controls on hover, while collapsed, or for keyboard focus. */
+/* The margin target reveals its control on hover; collapsed and focused controls stay visible. */
 .outliner-heading:hover > .outliner-heading-gutter > .outliner-toggle,
 .outliner-heading.collapsed > .outliner-heading-gutter > .outliner-toggle,
 .outliner-heading > .outliner-heading-gutter > .outliner-toggle:focus-visible,
@@ -93,7 +92,6 @@
 .outliner-list-item.collapsed > .outliner-list-gutter > .outliner-list-toggle,
 .outliner-list-item > .outliner-list-gutter > .outliner-list-toggle:focus-visible {
   opacity: 1;
-  pointer-events: auto;
 }
 
 /* Align the native marker with the first code line, including padded highlighting. */
@@ -154,12 +152,6 @@ body.vscode-high-contrast .outliner-toggle {
 body.vscode-dark .outliner-toggle:hover,
 body.vscode-high-contrast .outliner-toggle:hover {
   opacity: 1;
-}
-
-/* Ensure proper spacing for nested lists */
-.outliner-list-item > ul,
-.outliner-list-item > ol {
-  margin-top: 0.3em;
 }
 
 /* Prevent text selection during clicking */
